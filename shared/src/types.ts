@@ -15,6 +15,8 @@ export interface PassiveTrait {
 export interface PokemonSpecies {
   id: string;
   name: string;
+  /** National Pokédex number — how any external sprite source addresses this species. */
+  dex: number;
   rarity: Rarity;
   role: PokemonRole;
   /** Only passive-role species produce resources in the Refuge. */

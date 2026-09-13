@@ -17,20 +17,20 @@ export const SLOTS_BY_TYPE = Object.fromEntries(SLOTS.map((s) => [s.type, s])) a
  * slot; offensive species have no trait and are meant for the (future) dungeon loop.
  */
 export const POKEMON_SPECIES: readonly PokemonSpecies[] = [
-  { id: "sunkern", name: "Tournegrin", rarity: "common", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.2 } },
-  { id: "bulbasaur", name: "Bulbizarre", rarity: "common", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.3 } },
-  { id: "victreebel", name: "Vipélierre", rarity: "rare", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.5 } },
-  { id: "magikarp", name: "Magicarpe", rarity: "common", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.2 } },
-  { id: "lapras", name: "Lokhlass", rarity: "rare", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.5 } },
-  { id: "wailord", name: "Wailord", rarity: "epic", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.8 } },
-  { id: "bonsly", name: "Manzaï", rarity: "common", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.2 } },
-  { id: "sudowoodo", name: "Simularbre", rarity: "rare", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.5 } },
-  { id: "torterra", name: "Torterra", rarity: "epic", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.8 } },
-  { id: "onix", name: "Onix", rarity: "common", role: "passive", trait: { slot: "MINING", multiplier: 1.2 } },
-  { id: "steelix", name: "Steelix", rarity: "rare", role: "passive", trait: { slot: "MINING", multiplier: 1.5 } },
-  { id: "regirock", name: "Regirock", rarity: "legendary", role: "passive", trait: { slot: "MINING", multiplier: 2.2 } },
-  { id: "keldeo", name: "Keldeo", rarity: "legendary", role: "offensive" },
-  { id: "hoopa", name: "Mysdibule", rarity: "legendary", role: "offensive" },
+  { id: "sunkern", name: "Tournegrin", dex: 191, rarity: "common", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.2 } },
+  { id: "bulbasaur", name: "Bulbizarre", dex: 1, rarity: "common", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.3 } },
+  { id: "snivy", name: "Vipélierre", dex: 495, rarity: "rare", role: "passive", trait: { slot: "BERRY_FARM", multiplier: 1.5 } },
+  { id: "magikarp", name: "Magicarpe", dex: 129, rarity: "common", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.2 } },
+  { id: "lapras", name: "Lokhlass", dex: 131, rarity: "rare", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.5 } },
+  { id: "wailord", name: "Wailord", dex: 321, rarity: "epic", role: "passive", trait: { slot: "FISHING_DOCK", multiplier: 1.8 } },
+  { id: "bonsly", name: "Manzaï", dex: 438, rarity: "common", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.2 } },
+  { id: "sudowoodo", name: "Simularbre", dex: 185, rarity: "rare", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.5 } },
+  { id: "torterra", name: "Torterra", dex: 389, rarity: "epic", role: "passive", trait: { slot: "WOODCUTTING", multiplier: 1.8 } },
+  { id: "onix", name: "Onix", dex: 95, rarity: "common", role: "passive", trait: { slot: "MINING", multiplier: 1.2 } },
+  { id: "steelix", name: "Steelix", dex: 208, rarity: "rare", role: "passive", trait: { slot: "MINING", multiplier: 1.5 } },
+  { id: "regirock", name: "Regirock", dex: 377, rarity: "legendary", role: "passive", trait: { slot: "MINING", multiplier: 2.2 } },
+  { id: "keldeo", name: "Keldeo", dex: 647, rarity: "legendary", role: "offensive" },
+  { id: "mawile", name: "Mysdibule", dex: 303, rarity: "legendary", role: "offensive" },
 ];
 
 export const POKEMON_BY_ID = Object.fromEntries(POKEMON_SPECIES.map((p) => [p.id, p])) as Record<

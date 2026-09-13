@@ -314,6 +314,28 @@
   pointer-events: none;
 }
 
+/* External pixel-art sprites: keep the pixels crisp when scaled up, and stand the
+   creature on the ground rather than centring it in the box. */
+.creature-sprite {
+  image-rendering: pixelated;
+  object-fit: contain;
+  object-position: center bottom;
+  /* Drawn larger than its slot, so pin it to the floor and let it spill upward only.
+     Grid alignment would grow the track instead and push the label below it.
+     Centred with auto margins rather than a transform, which the idle bob owns. */
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Sprite canvases carry a few rows of empty pixels under the feet; nudge down so the
+     creature looks planted rather than hovering. Sources vary, so this is a good average. */
+  bottom: -8%;
+  margin-inline: auto;
+}
+
+.creature-still .creature-shadow {
+  animation: none;
+}
+
 .creature-shadow {
   position: absolute;
   bottom: 2%;

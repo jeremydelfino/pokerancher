@@ -237,6 +237,22 @@ pokerancher/
 
 ---
 
+## 🎨 Les sprites des créatures
+
+Le rendu des créatures est **interchangeable**, piloté par `VITE_SPRITE_SOURCE` dans le `.env` :
+
+| Valeur | Ce que tu vois | À savoir |
+|---|---|---|
+| `svg` | Créatures originales dessinées en SVG | Rien à licencier, aucun risque |
+| `pokeapi` | **Vrais sprites 2D** chargés depuis le miroir PokeAPI | Images appartenant à Nintendo / Game Freak / The Pokémon Company |
+| `custom` | Ton propre jeu de sprites depuis `VITE_SPRITE_BASE_URL` (`<base>/<dex>.png`) | À toi de voir |
+
+**Aucun sprite n'est stocké dans ce dépôt** — ils sont chargés par URL à l'exécution. C'est volontaire : ce qui fait tomber un dépôt GitHub sur signalement, c'est d'y **héberger** les fichiers, pas de les afficher en local.
+
+Si une image ne charge pas (hors-ligne, URL morte, source indisponible), le jeu retombe automatiquement sur les créatures SVG — jamais d'image cassée.
+
+⚠️ **Avant toute mise en ligne publique**, repasse sur `VITE_SPRITE_SOURCE="svg"`. Les sprites sont l'élément le plus surveillé : un fan-game qui reste en local ne dérange personne, un site public qui les affiche est la cible habituelle des demandes de retrait.
+
 ## 🔐 Sécurité
 
 - ⚠️ **Ne partage JAMAIS** ton `.env` publiquement (contient secrets Discord + DB)

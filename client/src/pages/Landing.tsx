@@ -7,7 +7,7 @@ import { useAuth } from "../state/AuthContext.js";
 
 const PILLARS = [
   {
-    speciesId: "victreebel",
+    speciesId: "snivy",
     title: "Le Refuge",
     body: "Installe tes compagnons dans les enclos. Baies, poissons, bois et minerai s'accumulent même quand tu n'es pas là.",
   },

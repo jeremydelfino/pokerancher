@@ -24,7 +24,7 @@ describe("starTierForCount", () => {
 describe("computeProduction", () => {
   it("computes berry output for a Vipélierre on the berry farm", () => {
     const result = computeProduction({
-      speciesId: "victreebel",
+      speciesId: "snivy",
       slotType: "BERRY_FARM",
       elapsedMs: 60 * 60 * 1000,
       duplicateCount: 1,
@@ -36,7 +36,7 @@ describe("computeProduction", () => {
 
   it("applies the star tier multiplier on top of the trait", () => {
     const result = computeProduction({
-      speciesId: "victreebel",
+      speciesId: "snivy",
       slotType: "BERRY_FARM",
       elapsedMs: 60 * 60 * 1000,
       duplicateCount: 4, // 2 stars -> x1.25
@@ -46,7 +46,7 @@ describe("computeProduction", () => {
 
   it("caps elapsed time at MAX_OFFLINE_MS", () => {
     const result = computeProduction({
-      speciesId: "victreebel",
+      speciesId: "snivy",
       slotType: "BERRY_FARM",
       elapsedMs: MAX_OFFLINE_MS * 10,
       duplicateCount: 1,
@@ -57,7 +57,7 @@ describe("computeProduction", () => {
   it("rejects a species assigned to the wrong slot", () => {
     expect(() =>
       computeProduction({
-        speciesId: "victreebel",
+        speciesId: "snivy",
         slotType: "MINING",
         elapsedMs: 1000,
         duplicateCount: 1,

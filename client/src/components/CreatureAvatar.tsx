@@ -1,11 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { POKEMON_BY_ID } from "@pokerancher/shared";
+import { spriteIsAnimated, spriteUrl } from "../sprites.js";
 
 /**
- * Creatures are drawn from scratch as parametric SVG — no game sprites are used
- * or reproduced anywhere in this project. Each one derives its palette from a
- * hash of its species id, and its silhouette details from the Refuge job it is
- * built for (leaf / fin / twig / crystal), so a pen's occupant reads at a glance.
+ * Renders a creature from whichever art source is configured (see src/sprites.ts).
+ *
+ * The built-in source is a parametric SVG drawn from scratch: its palette comes
+ * from a hash of the species id and its silhouette details from the Refuge job it
+ * is built for (leaf / fin / twig / crystal), so a pen's occupant reads at a glance.
+ * It is also the fallback whenever an external sprite fails to load.
  */
 
 type Job = "BERRY_FARM" | "FISHING_DOCK" | "WOODCUTTING" | "MINING" | "WANDERER";
@@ -25,6 +28,10 @@ export const RARITY_AURA: Record<string, string | undefined> = {
   epic: "rgba(160, 111, 240, 0.6)",
   legendary: "rgba(245, 166, 35, 0.72)",
 };
+
+/** Sprite sheets pad their canvas with transparency, so draw them larger than the slot
+ *  to make the creature itself fill it. Overflow is anchored upward (see .creature-sprite). */
+const SPRITE_OVERSCAN = 1.55;
 
 function hashString(value: string): number {
   let h = 2166136261;
@@ -47,6 +54,41 @@ interface Props {
 export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, className }: Props) {
   const species = POKEMON_BY_ID[speciesId];
   const resolvedRarity = rarity ?? species?.rarity ?? "common";
+  const aura = RARITY_AURA[resolvedRarity];
+
+  const url = species ? spriteUrl(species.dex) : null;
+  const [spriteBroken, setSpriteBroken] = useState(false);
+  const showSprite = url !== null && !spriteBroken;
+  // Animated sprites already breathe on their own; stacking the CSS bob looks jittery.
+  const frozen = still || (showSprite && spriteIsAnimated(url));
+
+  return (
+    <span
+      className={`creature ${frozen ? "creature-still" : ""} ${className ?? ""}`}
+      style={{ width: size, height: size }}
+    >
+      {aura && <span className="creature-aura" style={{ ["--aura-color" as string]: aura }} />}
+      {!showSprite && <span className="creature-shadow" />}
+
+      {showSprite ? (
+        <img
+          className="creature-art creature-sprite"
+          src={url}
+          width={Math.round(size * SPRITE_OVERSCAN)}
+          height={Math.round(size * SPRITE_OVERSCAN)}
+          alt={species?.name ?? speciesId}
+          draggable={false}
+          onError={() => setSpriteBroken(true)}
+        />
+      ) : (
+        <ProceduralCreature speciesId={speciesId} size={size} />
+      )}
+    </span>
+  );
+}
+
+function ProceduralCreature({ speciesId, size }: { speciesId: string; size: number }) {
+  const species = POKEMON_BY_ID[speciesId];
   const job: Job = (species?.trait?.slot as Job) ?? "WANDERER";
 
   const palette = useMemo(() => {
@@ -65,15 +107,8 @@ export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, cl
     };
   }, [speciesId, job]);
 
-  const aura = RARITY_AURA[resolvedRarity];
-
   return (
-    <span
-      className={`creature ${still ? "creature-still" : ""} ${className ?? ""}`}
-      style={{ width: size, height: size }}
-    >
-      {aura && <span className="creature-aura" style={{ ["--aura-color" as string]: aura }} />}
-      <span className="creature-shadow" />
+    <>
       <svg
         className="creature-art"
         width={size}
@@ -157,6 +192,6 @@ export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, cl
           <path d="M45 65 Q50 70 55 65" stroke="#2f3a33" strokeWidth="2.2" strokeLinecap="round" fill="none" />
         </g>
       </svg>
-    </span>
+    </>
   );
 }
