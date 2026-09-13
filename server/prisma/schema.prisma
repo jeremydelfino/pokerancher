@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  discordId   String   @unique
+  username    String
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  inventory    InventoryItem[]
+  pokemonUnits PokemonUnit[]
+  refugeSlots  RefugeSlot[]
+}
+
+/// Frugal duplicate-tracking: one row per (user, resource), quantity incremented in place.
+model InventoryItem {
+  id       String @id @default(uuid())
+  userId   String
+  resource String
+  quantity Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resource])
+}
+
+/// One row per (user, species) — duplicates increment `quantity` instead of new rows.
+model PokemonUnit {
+  id             String   @id @default(uuid())
+  userId         String
+  speciesId      String
+  quantity       Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refugeSlot RefugeSlot?
+
+  @@unique([userId, speciesId])
+}
+
+model RefugeSlot {
+  id              String   @id @default(uuid())
+  userId          String
+  slotType        String
+  pokemonUnitId   String?  @unique
+  lastCollectedAt DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pokemonUnit PokemonUnit? @relation(fields: [pokemonUnitId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, slotType])
+}
