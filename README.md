@@ -1,61 +1,274 @@
-# PokéRancher
+# PokéRancher 🎮
 
 Fan-game web Pokémon (Idle + Roguelite + Gacha), 100% gratuit, sans pub ni micro-transaction.
 
-Ce dépôt contient la première brique : **connexion Discord**, **Refuge (idle)** et **Gacha (fusion de doublons)**.
+Ce projet implémente les trois briques essentielles : **connexion Discord**, **Refuge (idle)** et **Gacha (fusion de doublons)**.
 
-## Stack
+---
 
-- `shared/` — types, données de jeu (espèces, slots, table de rareté) et logique pure (production, paliers d'étoiles, tirage gacha), testés unitairement.
-- `server/` — Node + Express + TypeScript + Prisma/PostgreSQL. OAuth2 Discord, calcul de production **côté serveur** (anti-triche), gacha.
-- `client/` — React + Vite + TypeScript.
+## 📋 Prérequis
 
-## Pourquoi c'est "anti-triche" par design
+Avant de commencer, assure-toi d'avoir :
 
-Le client ne fixe jamais l'horodatage utilisé pour calculer la production : le serveur stocke `lastCollectedAt` et calcule toujours `elapsed = now() - lastCollectedAt`, plafonné à `MAX_OFFLINE_MS` (12h). Le client peut afficher un aperçu, mais seul le `POST /refuge/slots/:type/claim` fait foi.
+- **Node.js** (v22+) : https://nodejs.org/
+- **npm** (v10+) : installé avec Node
+- **Git** : https://git-scm.com/
+- Un compte **Supabase** (gratuit) : https://supabase.com
+- Un compte **Discord** : https://discord.com
 
-## Démarrer en local
+---
 
-```bash
+## 🚀 Installation complète (Nouveau PC)
+
+### Étape 1 : Cloner le projet
+
+```powershell
+git clone https://github.com/jeremydelfino/pokerancher.git
+cd pokerancher
+```
+
+### Étape 2 : Installer les dépendances
+
+```powershell
 npm install
-
-# Base de données Postgres locale (ou Supabase/Neon en prod)
-cp .env.example .env
-# éditer .env : DATABASE_URL, JWT_SECRET, DISCORD_CLIENT_ID/SECRET (voir ci-dessous)
-
-npm run db:migrate   # applique le schema Prisma
-npm run dev:server   # http://localhost:4000
-npm run dev:client   # http://localhost:5173
 ```
 
-### Créer l'app Discord (liaison de compte)
+⏳ Ça peut prendre 1-2 minutes.
 
-1. https://discord.com/developers/applications → New Application
-2. OAuth2 → Redirects : ajouter `http://localhost:4000/auth/discord/callback`
-3. Copier `Client ID` / `Client secret` dans `.env`
-4. Scope utilisé : `identify` uniquement (pas d'email, pas de guilds)
+### Étape 3 : Configurer Supabase (Base de données)
 
-Le flow : `GET /auth/discord/login` (redirige vers Discord, state anti-CSRF en cookie) → `GET /auth/discord/callback` (échange le code, upsert le `User` par `discordId`, pose un cookie de session JWT httpOnly) → redirection vers `/refuge` côté client.
+**Sur Supabase :**
 
-## Boucle actuelle
+1. Va sur https://supabase.com et crée un nouveau projet
+2. Attends que le projet soit initialisé (~2-3 min)
+3. Va à **Settings** → **Database** → **Connection Strings** → **URI**
+4. Copie la chaîne (elle ressemble à `postgresql://postgres:password@...`)
 
-1. **Inscription** : bouton "Se connecter avec Discord" → compte créé/lié automatiquement, crédité de `STARTER_EGG_SHARDS` (150) pour pouvoir lancer son premier œuf.
-2. **Gacha** (`POST /gacha/roll`, coûte 50 `egg_shard`) : tirage pondéré par rareté parmi le roster (`shared/src/pokemon-data.ts`). Un doublon incrémente la colonne `quantity` de `PokemonUnit` (pas de nouvelle ligne) et fait progresser les paliers d'étoiles (2/4/8/16 exemplaires → ×1.1/×1.25/×1.5/×2).
-3. **Refuge** : chaque Pokémon "passif" (trait lié à un slot : `BERRY_FARM`, `FISHING_DOCK`, `WOODCUTTING`, `MINING`) peut être assigné à son slot. `POST /refuge/slots/:type/claim` (ou `/refuge/claim-all`) crédite les ressources accumulées depuis le dernier claim, plafonné à 12h de production hors-ligne.
+**Localement :**
 
-Les Pokémon "offensifs" (Keldeo, Mysdibule) sont dans les données mais n'ont pas encore de rôle — réservés à la boucle donjon à venir.
+1. Crée un fichier `.env` à la racine du projet
+2. Copie ce contenu et **remplis-le** :
 
-## Prochaines étapes (non incluses ici)
+```env
+# --- Database (de Supabase) ---
+DATABASE_URL="postgresql://postgres:VOTRE_PASSWORD@VOTRE_HOST:5432/postgres"
 
-- Donjons procéduraux (roguelite) et validation de fin de run
-- PvE Hardcore (boss), PvP asynchrone + paris virtuels
-- Déploiement zero-cost (Vercel/Cloudflare + Render/Railway + Supabase/Neon)
+# --- JWT Secret (n'importe quel texte long) ---
+JWT_SECRET="dev-secret-changezmoi-en-production-1234567890"
 
-## Tests
+# --- Discord OAuth2 (voir étape 4) ---
+DISCORD_CLIENT_ID="VIENT_DE_DISCORD"
+DISCORD_CLIENT_SECRET="VIENT_DE_DISCORD"
+DISCORD_REDIRECT_URI="http://localhost:4000/auth/discord/callback"
 
-```bash
-npm run test        # vitest sur shared (logique pure)
-npm run typecheck    # tsc --noEmit sur les 3 packages
+# --- URLs locales ---
+CLIENT_URL="http://localhost:5173"
+VITE_API_URL="http://localhost:4000"
+
+# --- Other ---
+PORT=4000
+NODE_ENV=development
 ```
 
-La logique de production/gacha/paliers a aussi été vérifiée manuellement contre une vraie instance PostgreSQL (migration Prisma appliquée, endpoints testés via curl) : calcul de production correct, plafond anti-triche à 12h vérifié, fusion de doublons (paliers d'étoiles) vérifiée sur plusieurs tirages.
+3. **Copie aussi le `.env` dans le dossier `server/`** :
+   ```powershell
+   Copy-Item .env server/.env
+   ```
+
+### Étape 4 : Configurer Discord OAuth2
+
+**Sur Discord :**
+
+1. Va sur https://discord.com/developers/applications
+2. Clique **"New Application"**
+3. Donne un nom (ex: "PokéRancher Dev")
+4. Clique **"Create"**
+
+5. Va à l'onglet **OAuth2** → **General**
+6. **Copie** le `Client ID` → mets-le dans `.env` comme `DISCORD_CLIENT_ID`
+7. Clique **"Reset Secret"** → **Copie** → mets-le comme `DISCORD_CLIENT_SECRET`
+
+8. Scroll down à **"Redirects"**
+9. Ajoute : `http://localhost:4000/auth/discord/callback`
+10. Clique **"Save Changes"**
+
+### Étape 5 : Créer et migrer la base de données
+
+```powershell
+npm run db:migrate
+```
+
+Ça va :
+- Créer les tables Prisma dans Supabase
+- Générer le client Prisma
+
+### Étape 6 : Compiler le package `shared`
+
+```powershell
+npm run build --workspace shared
+```
+
+### Étape 7 : Démarrer le projet
+
+Ouvre **3 terminaux PowerShell** (ou 3 onglets dans VS Code) :
+
+**Terminal 1 - Serveur** :
+```powershell
+npm run dev:server
+# Devrait afficher : Pokerancher API listening on http://localhost:4000
+```
+
+**Terminal 2 - Client** :
+```powershell
+npm run dev:client
+# Devrait afficher : http://localhost:5173/
+```
+
+**Terminal 3 (optionnel) - Watch shared** :
+```powershell
+npm run dev --workspace shared
+```
+
+### Étape 8 : Ouvrir le navigateur
+
+Va sur **http://localhost:5173** 🎉
+
+Tu devrais voir le bouton "Se connecter avec Discord".
+
+---
+
+## 🎮 Utilisation
+
+### Connexion
+- Clique **"Se connecter avec Discord"**
+- Tu seras redirigé vers Discord pour autoriser
+- Reviens automatiquement, un compte est créé, tu reçois 150 `egg_shard`
+
+### Refuge (Idle)
+- Assigne des Pokémons aux 4 slots (Baies, Pêche, Bois, Minerai)
+- Les ressources s'accumulent automatiquement (même hors-ligne, limité à 12h)
+- Clique **"Récolter"** pour les collecter
+
+### Gacha
+- Clique **"Ouvrir un œuf"** (coûte 50 `egg_shard`)
+- Les doublons fusionnent et augmentent les stats (paliers ⭐)
+
+---
+
+## 🛠️ Commandes utiles
+
+```powershell
+# Voir tous les pokémons de la DB
+npm run db:studio    # Ouvre une UI Prisma
+
+# Relancer une migration
+npm run db:migrate   # Depuis le dossier racine
+
+# Vérifier les types TypeScript
+npm run typecheck    # Sur tous les packages
+
+# Lancer les tests
+npm run test         # Tests unitaires du package shared
+```
+
+---
+
+## ❌ Troubleshooting
+
+### Erreur : `DATABASE_URL not found`
+→ Vérifiez que le `.env` est à la **racine** ET dans le dossier **server/** 
+
+```powershell
+Copy-Item .env server/.env
+```
+
+### Erreur : `Discord token exchange failed: 401 invalid_client`
+→ Le `DISCORD_CLIENT_ID` ou `DISCORD_CLIENT_SECRET` est incorrect
+1. Retourne dans https://discord.com/developers/applications
+2. **Reset Secret** et copie le nouveau
+3. Redémarre le serveur avec `npm run dev:server`
+
+### Erreur : `Cannot find package '@pokerancher/shared'`
+→ Le package shared n'a pas été compilé
+```powershell
+npm run build --workspace shared
+```
+
+### Le client ne voit pas le serveur
+→ Vérifiez que :
+- Le serveur tourne sur `http://localhost:4000` (Terminal 1)
+- Le client a `VITE_API_URL="http://localhost:4000"` dans le `.env`
+- Les deux sont dans le `.env` AND `server/.env`
+
+### Prisma lent au démarrage
+→ Normal, laisse quelques secondes à la première exécution
+
+---
+
+## 📁 Structure du projet
+
+```
+pokerancher/
+├── shared/                  # Logique pure + types (testés)
+│   └── src/
+│       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
+│       ├── pokemon-data.ts  # Espèces, slots, rareté
+│       └── types.ts         # Interfaces TypeScript
+│
+├── server/                  # Backend Node + Express + Prisma
+│   ├── src/
+│   │   ├── routes/          # API endpoints (auth, refuge, gacha)
+│   │   ├── services/        # Logique métier
+│   │   └── auth/            # Discord OAuth2 + JWT
+│   └── prisma/
+│       ├── schema.prisma    # Modèle de base de données
+│       └── migrations/      # Historique des migrations
+│
+├── client/                  # Frontend React + Vite
+│   ├── src/
+│   │   ├── pages/           # Landing, Refuge, Gacha
+│   │   ├── state/           # AuthContext
+│   │   └── api/             # Appels au serveur
+│   └── vite.config.ts
+│
+├── .env                     # Variables d'environnement (à créer)
+└── package.json             # Workspace racine
+```
+
+---
+
+## 🔐 Sécurité
+
+- ⚠️ **Ne partage JAMAIS** ton `.env` publiquement (contient secrets Discord + DB)
+- ⚠️ **Ne commit JAMAIS** le `.env` (il est dans `.gitignore`)
+- Avant de pousser du code : `git status` pour vérifier
+- En production : utiliser des variables d'environnement du host (Vercel, Railway, etc.)
+
+---
+
+## 🎯 Prochaines étapes (roadmap)
+
+- [ ] Donjons procéduraux (roguelite)
+- [ ] Combats PvE hardcore (boss patterns)
+- [ ] PvP asynchrone + paris virtuels
+- [ ] Déploiement zero-cost (Vercel + Railway + Supabase)
+
+---
+
+## 📚 Architecture & Philosophie
+
+**Anti-triche par design** : Le serveur ne fait jamais confiance au client pour les timestamps. Production `= now() - lastCollectedAt`, plafonné à 12h → impossible de tricher en changeant l'horloge.
+
+**Monorepo NPM workspaces** : `shared/` réutilisable, `server/` stateless, `client/` en React.
+
+**Stack moderne** : TypeScript partout, tests unitaires (vitest), migrations de DB (Prisma), OAuth2 standards.
+
+---
+
+## 💬 Questions ?
+
+- Vérifiez les logs serveur (Terminal 1)
+- Relancez les serveurs après chaque changement de `.env`
+- Assurez-vous que port 4000 et 5173 sont libres
+
+Bon développement ! 🚀
