@@ -1,0 +1,97 @@
+/* Fixed, non-interactive backdrop shared by every page. */
+
+.ambience {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ambience-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--sky-high) 0%,
+    var(--sky-mid) 42%,
+    var(--sky-low) 78%,
+    #ffeedd 100%
+  );
+}
+
+.ambience-sun {
+  position: absolute;
+  top: 8%;
+  right: 12%;
+  width: 170px;
+  height: 170px;
+  border-radius: var(--r-full);
+  background: radial-gradient(circle, var(--sun) 0%, rgba(255, 212, 121, 0.55) 38%, transparent 70%);
+  animation: halo 7s var(--ease-in-out) infinite;
+}
+
+.cloud {
+  position: absolute;
+  left: 0;
+  color: #fff;
+  will-change: transform;
+  animation: drift linear infinite;
+}
+
+.hills {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 46vh;
+  min-height: 260px;
+}
+
+.grass-blades {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 90px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  opacity: 0.9;
+}
+
+.blade {
+  width: 6px;
+  border-radius: var(--r-full) var(--r-full) 0 0;
+  background: linear-gradient(180deg, var(--meadow-near), var(--meadow-deep));
+  transform-origin: 50% 100%;
+  animation: sway var(--blade-dur, 4s) var(--ease-in-out) infinite;
+}
+
+.pollen-field {
+  position: absolute;
+  inset: 0;
+}
+
+.pollen {
+  position: absolute;
+  bottom: -10px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: radial-gradient(circle at 35% 35%, #fff8d8, #ffe9a8);
+  box-shadow: 0 0 8px rgba(255, 232, 160, 0.9);
+  animation: pollen linear infinite;
+  will-change: transform, opacity;
+}
+
+/* Softens the backdrop behind dense UI so text stays readable. */
+.ambience-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 253, 247, 0.38) 0%,
+    rgba(255, 253, 247, 0.5) 30%,
+    rgba(255, 253, 247, 0.72) 62%,
+    rgba(255, 253, 247, 0.88) 100%
+  );
+}

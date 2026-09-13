@@ -1,51 +1,54 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import type { ReactNode } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Ambience } from "./components/Ambience.js";
+import { CreatureAvatar } from "./components/CreatureAvatar.js";
 import { Gacha } from "./pages/Gacha.js";
 import { Landing } from "./pages/Landing.js";
 import { Refuge } from "./pages/Refuge.js";
 import { useAuth } from "./state/AuthContext.js";
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function BootScreen() {
+  return (
+    <>
+      <Ambience variant="soft" />
+      <div className="empty" style={{ minHeight: "70vh" }}>
+        <CreatureAvatar speciesId="sunkern" size={96} />
+        <p>On ouvre le portail du ranch…</p>
+      </div>
+    </>
+  );
+}
+
+function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <p className="loading">Chargement...</p>;
+  if (loading) return <BootScreen />;
   if (!user) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 export function App() {
-  const { user, logout } = useAuth();
-
   return (
     <div className="app">
-      {user && (
-        <nav className="nav">
-          <Link to="/refuge">Refuge</Link>
-          <Link to="/gacha">Gacha</Link>
-          <span className="nav-user">{user.username}</span>
-          <button onClick={logout}>Déconnexion</button>
-        </nav>
-      )}
-
-      <main>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route
-            path="/refuge"
-            element={
-              <RequireAuth>
-                <Refuge />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/gacha"
-            element={
-              <RequireAuth>
-                <Gacha />
-              </RequireAuth>
-            }
-          />
-        </Routes>
-      </main>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route
+          path="/refuge"
+          element={
+            <RequireAuth>
+              <Refuge />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/gacha"
+          element={
+            <RequireAuth>
+              <Gacha />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

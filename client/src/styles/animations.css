@@ -1,0 +1,163 @@
+/* Every animation below moves only transform/opacity/filter so they stay on the compositor. */
+
+@keyframes drift {
+  from { transform: translate3d(-20%, 0, 0); }
+  to { transform: translate3d(120%, 0, 0); }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1.5deg); }
+  50% { transform: translate3d(0, -7%, 0) rotate(1.5deg); }
+}
+
+@keyframes squash {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.04, 0.96); }
+}
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+
+@keyframes pollen {
+  0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
+  15% { opacity: 0.9; }
+  85% { opacity: 0.7; }
+  100% { transform: translate3d(var(--pollen-x, 40px), -70vh, 0) scale(1.1); opacity: 0; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.82); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shine {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to { transform: translateX(320%) skewX(-18deg); }
+}
+
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+
+@keyframes halo {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+
+@keyframes ripple {
+  0% { transform: scaleX(1) translateY(0); opacity: 0.5; }
+  100% { transform: scaleX(1.6) translateY(-4px); opacity: 0; }
+}
+
+@keyframes gain-float {
+  0% { opacity: 0; transform: translate3d(-50%, 0, 0) scale(0.85); }
+  20% { opacity: 1; transform: translate3d(-50%, -14px, 0) scale(1.05); }
+  100% { opacity: 0; transform: translate3d(-50%, -68px, 0) scale(0.95); }
+}
+
+@keyframes egg-idle {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-2deg); }
+  50% { transform: translate3d(0, -10px, 0) rotate(2deg); }
+}
+
+@keyframes egg-shake {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  12% { transform: translate3d(-7px, 0, 0) rotate(-7deg); }
+  25% { transform: translate3d(7px, -2px, 0) rotate(7deg); }
+  37% { transform: translate3d(-8px, 0, 0) rotate(-8deg); }
+  50% { transform: translate3d(8px, -3px, 0) rotate(8deg); }
+  62% { transform: translate3d(-6px, 0, 0) rotate(-6deg); }
+  75% { transform: translate3d(6px, -2px, 0) rotate(5deg); }
+  88% { transform: translate3d(-3px, 0, 0) rotate(-3deg); }
+}
+
+@keyframes egg-burst {
+  0% { opacity: 1; transform: scale(1); filter: brightness(1); }
+  40% { opacity: 1; transform: scale(1.25); filter: brightness(2.2); }
+  100% { opacity: 0; transform: scale(1.9); filter: brightness(3); }
+}
+
+@keyframes shard-fly {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--shard-x), var(--shard-y), 0) rotate(var(--shard-r)) scale(0.4);
+  }
+}
+
+@keyframes flash-out {
+  0% { opacity: 0; transform: scale(0.4); }
+  30% { opacity: 0.95; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+
+@keyframes reveal-rise {
+  0% { opacity: 0; transform: translate3d(0, 40px, 0) scale(0.7); }
+  60% { opacity: 1; transform: translate3d(0, -8px, 0) scale(1.06); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes rays-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+
+@keyframes fill-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.95); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Cascade helper: children fade up one after another. */
+.stagger > * {
+  animation: rise-in var(--dur-slow) var(--ease-out) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 40ms; }
+.stagger > *:nth-child(2) { animation-delay: 110ms; }
+.stagger > *:nth-child(3) { animation-delay: 180ms; }
+.stagger > *:nth-child(4) { animation-delay: 250ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger > *:nth-child(6) { animation-delay: 390ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
