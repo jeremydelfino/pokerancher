@@ -125,17 +125,16 @@ export function Refuge() {
         {!state ? (
           <div className="slot-grid">
             {Array.from({ length: 4 }, (_, i) => (
-              <span key={i} className="skeleton" style={{ height: 330, borderRadius: "var(--r-lg)" }} />
+              <span key={i} className="skeleton" style={{ height: 400 }} />
             ))}
           </div>
         ) : (
           <>
             <div className="refuge-summary">
-              <CreatureAvatar speciesId="sunkern" size={58} />
+              <CreatureAvatar speciesId="sunkern" size={64} />
               <div className="refuge-summary-text">
-                <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
-                  Production hors-ligne plafonnée à 12 h — passe récolter avant que les réservoirs débordent.
-                </p>
+                Production hors-ligne plafonnée à 12&nbsp;h — passe récolter avant que les réservoirs
+                débordent.
               </div>
               <button className="btn btn-primary" onClick={handleClaimAll}>
                 Tout récolter

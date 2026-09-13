@@ -1,0 +1,43 @@
+/* ============================================================================
+   Diorama overlays — the moving parts inside each Refuge pen.
+   These animate inside an SVG viewBox of 64x34, so a CSS length of 1px here is
+   one scene pixel, not one screen pixel. Values look tiny on purpose.
+   ========================================================================== */
+
+.px-cloud-s {
+  animation: scene-drift 54s linear infinite;
+}
+
+.px-flutter {
+  animation: flutter 6s steps(4, end) infinite;
+}
+
+/* Two stacked loops: the glints slide, and the whole sheet breathes. */
+.px-shimmer {
+  animation: shimmer-slide 1.6s steps(4, end) infinite,
+    shimmer-fade 4.5s steps(3, end) infinite;
+}
+
+.px-fish {
+  animation: fish-jump 7.5s steps(6, end) infinite;
+}
+
+.px-leaf {
+  animation: leaf-fall 9s linear infinite;
+}
+
+.px-firefly-s {
+  animation: firefly 6s steps(6, end) infinite;
+}
+
+.px-glow {
+  animation: glow-pulse 2.6s steps(3, end) infinite;
+}
+
+.px-flicker {
+  animation: lantern-flicker 1.8s steps(1, end) infinite;
+}
+
+.px-dust {
+  animation: dust-fall 6s linear infinite;
+}

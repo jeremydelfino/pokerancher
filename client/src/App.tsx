@@ -49,6 +49,9 @@ export function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Scanlines and vignette over everything, including the sprites. */}
+      <div className="crt" aria-hidden="true" />
     </div>
   );
 }

@@ -1,3 +1,7 @@
+/* ============================================================================
+   Base — pixel-perfect rendering rules and the app shell.
+   ========================================================================== */
+
 *,
 *::before,
 *::after {
@@ -13,13 +17,28 @@ body,
 body {
   margin: 0;
   font-family: var(--font-body);
-  font-size: var(--text-base);
-  line-height: 1.55;
+  font-size: var(--read-base);
+  line-height: 1.35;
   color: var(--ink);
-  background: var(--sky-mid);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  background: var(--c-night);
   overflow-x: hidden;
+}
+
+/* Nothing in a pixel UI should ever be resampled smoothly. */
+img,
+canvas,
+video {
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+
+svg {
+  shape-rendering: geometricPrecision;
+}
+
+svg[data-pixel],
+.pixel-art {
+  shape-rendering: crispEdges;
 }
 
 h1,
@@ -27,10 +46,10 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.2;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
 }
 
 p {
@@ -56,13 +75,38 @@ ul {
   list-style: none;
 }
 
-:focus-visible {
-  outline: 3px solid var(--lavender);
-  outline-offset: 3px;
-  border-radius: var(--r-sm);
+::selection {
+  background: var(--c-magenta);
+  color: var(--c-white);
 }
 
-/* --- App shell --- */
+:focus-visible {
+  outline: var(--px) solid var(--c-gold);
+  outline-offset: var(--px);
+  border-radius: 0;
+}
+
+/* Chunky pixel scrollbar. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-mauve) var(--c-deep);
+}
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--c-deep);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--c-mauve);
+  border: 2px solid var(--c-deep);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--c-rose);
+}
+
+/* --- App shell ------------------------------------------------------------ */
 
 .app {
   position: relative;
@@ -93,23 +137,56 @@ ul {
 
 .page-title {
   font-size: var(--text-3xl);
+  color: var(--c-white);
+  text-shadow: var(--px) var(--px) 0 var(--ink), 0 0 24px rgba(197, 107, 214, 0.45);
   display: flex;
   align-items: center;
   gap: var(--s3);
 }
 
 .page-subtitle {
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  margin-top: var(--s1);
+  color: var(--ink-on-dark-soft);
+  font-size: var(--read-sm);
+  margin-top: var(--s2);
+  text-shadow: 2px 2px 0 rgba(18, 14, 28, 0.8);
 }
 
 .section-title {
   font-size: var(--text-xl);
+  color: var(--c-white);
   margin-bottom: var(--s4);
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
-/* --- Utilities --- */
+/* --- CRT overlay: scanlines + vignette, the whole lo-fi trick ------------- */
+
+.crt {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.crt::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(18, 14, 28, 0.22) 0 1px,
+    transparent 1px 4px
+  );
+  opacity: 0.55;
+}
+
+.crt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 48%, rgba(18, 14, 28, 0.55) 100%);
+}
+
+/* --- Utilities ------------------------------------------------------------ */
 
 .visually-hidden {
   position: absolute;
@@ -127,10 +204,24 @@ ul {
   color: var(--ink-soft);
 }
 
+.on-dark .muted,
+.muted.on-dark {
+  color: var(--ink-on-dark-soft);
+}
+
 .row {
   display: flex;
   align-items: center;
-  gap: var(--s3);
+  gap: var(--s2);
+}
+
+/* Pixel-font label: small, spaced, uppercase — the HUD voice of the game. */
+.label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 640px) {
@@ -139,5 +230,15 @@ ul {
   }
   .page-title {
     font-size: var(--text-2xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

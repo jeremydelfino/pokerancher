@@ -3,7 +3,7 @@ import { MAX_OFFLINE_MS, POKEMON_BY_ID, computeProduction } from "@pokerancher/s
 import type { RefugeSlotState } from "../api/client.js";
 import { CreatureAvatar } from "./CreatureAvatar.js";
 import { ResourceIcon, resourceLabel } from "./ResourceIcon.js";
-import { SCENE_COLORS, SlotScene } from "./SlotScene.js";
+import { SLOT_ACCENT, SlotScene } from "./SlotScene.js";
 import { Stars } from "./Stars.js";
 
 const HOUR_MS = 3_600_000;
@@ -57,15 +57,18 @@ export function SlotCard({ slot, fetchedAt, starsFor, busy, gain, onClaim, onOpe
     return { amount, max, ratio: max > 0 ? Math.min(1, amount / max) : 0 };
   }, [assigned, slot.type, slot.pendingAmount, fetchedAt, now]);
 
-  const scene = SCENE_COLORS[slot.type] ?? { sky: "#cfeaf5", ground: "#bfe0b5" };
+  const accent = SLOT_ACCENT[slot.type] ?? { accent: "#b6d98f", dark: "#5f9a5e" };
   const full = live.max > 0 && live.amount >= live.max;
 
   return (
-    <article className="slot-card">
-      <div
-        className="slot-scene"
-        style={{ ["--scene-sky" as string]: scene.sky, ["--scene-ground" as string]: scene.ground }}
-      >
+    <article
+      className="slot-card"
+      style={{
+        ["--slot-accent" as string]: accent.accent,
+        ["--slot-accent-dk" as string]: accent.dark,
+      }}
+    >
+      <div className="slot-scene">
         <SlotScene slotType={slot.type} />
         {assigned ? (
           <CreatureAvatar speciesId={assigned.speciesId} size={92} />
@@ -98,11 +101,8 @@ export function SlotCard({ slot, fetchedAt, starsFor, busy, gain, onClaim, onOpe
               <span className="res-name">{full ? "réservoir plein" : `max ${live.max.toLocaleString("fr-FR")}`}</span>
             </div>
 
-            <div className="slot-progress">
-              <span
-                className="slot-progress-fill"
-                style={{ transform: `scaleX(${live.ratio})`, opacity: full ? 1 : 0.9 }}
-              />
+            <div className={`slot-progress ${full ? "slot-progress-full" : ""}`}>
+              <span className="slot-progress-fill" style={{ transform: `scaleX(${live.ratio})` }} />
             </div>
 
             <div className="slot-actions">
@@ -119,7 +119,7 @@ export function SlotCard({ slot, fetchedAt, starsFor, busy, gain, onClaim, onOpe
           </>
         ) : (
           <>
-            <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
+            <p className="muted" style={{ fontSize: "var(--read-sm)" }}>
               Assigne un compagnon dont le talent correspond à cet enclos pour lancer la production.
             </p>
             <div className="slot-actions">

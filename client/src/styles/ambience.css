@@ -1,4 +1,9 @@
-/* Fixed, non-interactive backdrop shared by every page. */
+/* ============================================================================
+   Ambience — the animated backdrop every page sits on.
+   The sky is a hard-stop gradient (bands, never a smooth blend) with a 4px
+   checker laid over the whole thing, which is what sells the "rendered on a
+   handheld" look more than any single sprite does.
+   ========================================================================== */
 
 .ambience {
   position: fixed;
@@ -6,92 +11,113 @@
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  user-select: none;
 }
 
 .ambience-sky {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    180deg,
-    var(--sky-high) 0%,
-    var(--sky-mid) 42%,
-    var(--sky-low) 78%,
-    #ffeedd 100%
+    to bottom,
+    var(--c-void) 0 10%,
+    var(--c-night) 10% 22%,
+    var(--c-deep) 22% 34%,
+    var(--c-plum) 34% 45%,
+    var(--c-violet) 45% 55%,
+    var(--c-mauve) 55% 64%,
+    var(--c-rose) 64% 72%,
+    var(--c-blush) 72% 79%,
+    var(--c-coral) 79% 87%,
+    var(--c-peach) 87% 100%
   );
 }
 
-.ambience-sun {
+/* A 4px checkerboard over everything: cheap, uniform, unmistakably pixel. */
+.ambience-dither {
   position: absolute;
-  top: 8%;
+  inset: 0;
+  background-image: repeating-conic-gradient(
+    rgba(18, 14, 28, 0.16) 0% 25%,
+    transparent 0% 50%
+  );
+  background-size: 4px 4px;
+  opacity: 0.6;
+}
+
+.ambience-moon {
+  position: absolute;
+  top: 9%;
   right: 12%;
-  width: 170px;
-  height: 170px;
-  border-radius: var(--r-full);
-  background: radial-gradient(circle, var(--sun) 0%, rgba(255, 212, 121, 0.55) 38%, transparent 70%);
-  animation: halo 7s var(--ease-in-out) infinite;
+  animation: px-bob-slow 5s steps(1, end) infinite;
+}
+
+.ambience-stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+}
+
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: var(--c-white);
+  animation: twinkle 3s steps(1, end) infinite;
+}
+
+.star-big {
+  width: 4px;
+  height: 4px;
+  box-shadow: -4px 0 0 rgba(255, 253, 245, 0.4), 4px 0 0 rgba(255, 253, 245, 0.4),
+    0 -4px 0 rgba(255, 253, 245, 0.4), 0 4px 0 rgba(255, 253, 245, 0.4);
 }
 
 .cloud {
   position: absolute;
   left: 0;
-  color: #fff;
-  will-change: transform;
   animation: drift linear infinite;
+  will-change: transform;
+}
+
+.cloud svg {
+  display: block;
+  image-rendering: pixelated;
 }
 
 .hills {
   position: absolute;
-  inset: auto 0 0 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 46vh;
-  min-height: 260px;
+  min-height: 240px;
+  display: block;
+  image-rendering: pixelated;
 }
 
-.grass-blades {
+.firefly-field {
   position: absolute;
-  inset: auto 0 0 0;
-  height: 90px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  opacity: 0.9;
+  inset: 55% 0 0 0;
 }
 
-.blade {
-  width: 6px;
-  border-radius: var(--r-full) var(--r-full) 0 0;
-  background: linear-gradient(180deg, var(--meadow-near), var(--meadow-deep));
-  transform-origin: 50% 100%;
-  animation: sway var(--blade-dur, 4s) var(--ease-in-out) infinite;
-}
-
-.pollen-field {
+.firefly {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  width: 4px;
+  height: 4px;
+  background: var(--c-gold);
+  box-shadow: 0 0 0 2px rgba(242, 176, 61, 0.25);
+  animation: firefly linear infinite;
 }
 
-.pollen {
-  position: absolute;
-  bottom: -10px;
-  width: 7px;
-  height: 7px;
-  border-radius: var(--r-full);
-  background: radial-gradient(circle at 35% 35%, #fff8d8, #ffe9a8);
-  box-shadow: 0 0 8px rgba(255, 232, 160, 0.9);
-  animation: pollen linear infinite;
-  will-change: transform, opacity;
-}
-
-/* Softens the backdrop behind dense UI so text stays readable. */
+/* Darkens the busy lower half so page copy keeps its contrast. */
 .ambience-veil {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    180deg,
-    rgba(255, 253, 247, 0.38) 0%,
-    rgba(255, 253, 247, 0.5) 30%,
-    rgba(255, 253, 247, 0.72) 62%,
-    rgba(255, 253, 247, 0.88) 100%
+    to bottom,
+    rgba(18, 14, 28, 0.55) 0%,
+    rgba(18, 14, 28, 0.25) 35%,
+    rgba(18, 14, 28, 0.45) 70%,
+    rgba(18, 14, 28, 0.72) 100%
   );
 }

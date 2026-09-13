@@ -1,104 +1,131 @@
-/* Design tokens — a single daylight "cosy ranch" theme.
-   Hues are borrowed from handheld-era sprite palettes: soft sky, sage meadow, amber sun. */
+/* ============================================================================
+   Design tokens — "lo-fi ranch at dusk".
+   A tight, hand-picked pixel palette: cool purple night up top, warm peach on
+   the horizon, muted sage meadows. Everything is deliberately desaturated so
+   the sprite colours stay the brightest thing on screen.
+   ========================================================================== */
 
 :root {
-  /* --- Sky & world --- */
-  --sky-high: #8fd3ee;
-  --sky-mid: #bfe9f5;
-  --sky-low: #ffe6cf;
-  --sun: #ffd479;
-  --meadow-far: #9ad4a1;
-  --meadow-near: #6bb87d;
-  --meadow-deep: #3f8257;
+  /* --- Night & sky ramp (dark -> warm) --- */
+  --c-void: #120e1c;
+  --c-night: #1a1626;
+  --c-deep: #241d35;
+  --c-plum: #372a4d;
+  --c-violet: #4e3a6b;
+  --c-mauve: #6d5088;
+  --c-rose: #a45f8f;
+  --c-blush: #d97f8c;
+  --c-coral: #e89b72;
+  --c-peach: #f4c48a;
+  --c-cream: #f7e6c4;
+  --c-paper: #fbf3dd;
+  --c-white: #fffdf5;
 
-  /* --- Surfaces --- */
-  --surface: #fffdf7;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f4eee1;
-  --surface-glass: rgba(255, 253, 247, 0.78);
-  --border: #e6dcc8;
-  --border-strong: #d4c6a8;
+  /* --- Meadow --- */
+  --c-grass-hi: #b6d98f;
+  --c-grass: #7fb069;
+  --c-grass-mid: #5f9a5e;
+  --c-grass-dk: #3c6b4a;
+  --c-forest: #24452f;
 
-  /* --- Ink --- */
-  --ink: #2f3a33;
-  --ink-soft: #5d6b60;
-  --ink-faint: #8c9a8f;
-  --ink-invert: #fffdf7;
+  /* --- Water --- */
+  --c-water-hi: #9fdbe8;
+  --c-water: #5aa8c4;
+  --c-water-dk: #35708f;
+  --c-water-deep: #24506b;
+
+  /* --- Stone & wood --- */
+  --c-stone-hi: #b9b3c9;
+  --c-stone: #8a84a0;
+  --c-stone-dk: #5b5674;
+  --c-stone-deep: #3b3752;
+  --c-wood-hi: #c08a55;
+  --c-wood: #8b5e3c;
+  --c-wood-dk: #5c3d28;
 
   /* --- Accents --- */
-  --amber: #f2b03d;
-  --amber-deep: #d9901c;
-  --coral: #ff8a65;
-  --lavender: #a78bfa;
-  --lavender-deep: #7c5cd6;
-  --aqua: #4fc3d9;
-  --discord: #5865f2;
-  --danger: #d9534f;
+  --c-berry: #e05c72;
+  --c-amber: #f2b03d;
+  --c-gold: #ffd479;
+  --c-cyan: #7ce0d3;
+  --c-magenta: #c56bd6;
+  --c-discord: #5865f2;
+  --c-danger: #e05c72;
+
+  /* --- Ink: every pixel outline in the UI --- */
+  --ink: #1a1428;
+  --ink-soft: #4a3f63;
+  --ink-faint: #7a6e96;
+  --ink-on-dark: #efe6ff;
+  --ink-on-dark-soft: #b9aed6;
+
+  /* --- Surfaces --- */
+  --surface: var(--c-paper);
+  --surface-raised: var(--c-white);
+  --surface-sunken: #efe2c4;
+  --surface-dark: var(--c-deep);
+  --surface-dark-raised: var(--c-plum);
 
   /* --- Resources --- */
   --res-berry: #e05c72;
-  --res-fish: #3fa9d4;
-  --res-wood: #a9763f;
-  --res-ore: #8b8fa8;
-  --res-egg_shard: #b689f5;
+  --res-fish: #5aa8c4;
+  --res-wood: #c08a55;
+  --res-ore: #a49ec4;
+  --res-egg_shard: #c56bd6;
 
   /* --- Rarity --- */
-  --rarity-common: #9aa8a0;
-  --rarity-rare: #4fa8e0;
-  --rarity-epic: #a06ff0;
-  --rarity-legendary: #f5a623;
+  --rarity-common: #8a84a0;
+  --rarity-rare: #5aa8c4;
+  --rarity-epic: #c56bd6;
+  --rarity-legendary: #f2b03d;
 
-  /* --- Slot themes --- */
-  --slot-berry: #ef9aa8;
-  --slot-fish: #7fd0e8;
-  --slot-wood: #c2a06a;
-  --slot-mine: #a9aec9;
+  /* --- Slot identity --- */
+  --slot-berry: #e07a86;
+  --slot-fish: #5aa8c4;
+  --slot-wood: #8fbf6a;
+  --slot-mine: #a89ad4;
 
-  /* --- Type scale --- */
-  --font-display: "Fredoka", "Baloo 2", system-ui, sans-serif;
-  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* --- Type --- */
+  --font-display: "Pixelify Sans", "Courier New", monospace;
+  --font-body: "VT323", "Courier New", monospace;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
-  --text-3xl: 2.25rem;
-  --text-hero: clamp(2.75rem, 8vw, 5rem);
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --text-hero: clamp(34px, 7.5vw, 76px);
 
-  /* --- Space (4px scale) --- */
-  --s1: 0.25rem;
-  --s2: 0.5rem;
-  --s3: 0.75rem;
-  --s4: 1rem;
-  --s5: 1.5rem;
-  --s6: 2rem;
-  --s7: 3rem;
-  --s8: 4rem;
+  /* VT323 renders small for its em size — body copy needs a bump. */
+  --read-sm: 16px;
+  --read-base: 19px;
+  --read-lg: 22px;
 
-  /* --- Radius --- */
-  --r-sm: 8px;
-  --r-md: 14px;
-  --r-lg: 22px;
-  --r-xl: 32px;
-  --r-full: 999px;
+  /* --- Space: strict 4px grid, because pixels --- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
 
-  /* --- Elevation (tinted, never pure black) --- */
-  --shadow-sm: 0 1px 2px rgba(47, 58, 51, 0.06), 0 2px 6px rgba(47, 58, 51, 0.05);
-  --shadow-md: 0 4px 10px rgba(47, 58, 51, 0.08), 0 12px 24px rgba(47, 58, 51, 0.07);
-  --shadow-lg: 0 10px 20px rgba(47, 58, 51, 0.1), 0 24px 50px rgba(47, 58, 51, 0.12);
-  --shadow-inset: inset 0 2px 0 rgba(255, 255, 255, 0.7);
+  /* --- The pixel unit: every border, notch and offset is a multiple --- */
+  --px: 4px;
+  --px2: 8px;
 
-  /* --- Motion --- */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-fast: 140ms;
-  --dur: 260ms;
-  --dur-slow: 520ms;
+  /* --- Motion: steps() for sprite-like snap, linear for drifts --- */
+  --dur-fast: 120ms;
+  --dur: 220ms;
+  --dur-slow: 460ms;
+  --ease-snap: steps(4, end);
+  --ease-pop: cubic-bezier(0.34, 1.7, 0.5, 1);
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
 
   /* --- Layout --- */
-  --page-max: 1120px;
-  --topbar-h: 68px;
+  --page-max: 1180px;
+  --topbar-h: 64px;
 }

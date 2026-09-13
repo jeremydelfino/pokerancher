@@ -2,6 +2,7 @@ import { Navigate } from "react-router-dom";
 import { api } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
 import { CreatureAvatar } from "../components/CreatureAvatar.js";
+import { PixelIcon } from "../components/pixel.js";
 import { BrandMark } from "../components/TopBar.js";
 import { useAuth } from "../state/AuthContext.js";
 
@@ -23,12 +24,19 @@ const PILLARS = [
   },
 ];
 
+const DISCORD_GLYPH = [
+  "..iiiiii..",
+  ".iiiiiiii.",
+  "ii.iiii.ii",
+  "iiiiiiiiii",
+  "iiiiiiiiii",
+  "ii.iiii.ii",
+  ".iiiiiiii.",
+  ".i......i.",
+];
+
 function DiscordGlyph() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M19.6 5.3A16.9 16.9 0 0 0 15.4 4l-.3.5c1.5.4 2.7 1 3.8 1.7a12.8 12.8 0 0 0-11.8 0C8.2 5.5 9.5 4.9 11 4.5L10.6 4a16.9 16.9 0 0 0-4.2 1.3C3.7 9.3 3 13.2 3.3 17a17 17 0 0 0 5.2 2.6l1-1.7c-.9-.3-1.7-.8-2.4-1.3l.6-.4a12.1 12.1 0 0 0 10.6 0l.6.4c-.7.5-1.5 1-2.4 1.3l1 1.7a17 17 0 0 0 5.2-2.6c.4-4.4-.6-8.3-2.9-11.7ZM9.3 14.7c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.9.9 1.8 2c0 1.1-.8 2-1.8 2Zm5.4 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.9.9 1.8 2c0 1.1-.8 2-1.8 2Z" />
-    </svg>
-  );
+  return <PixelIcon art={DISCORD_GLYPH} palette={{ i: "#ffffff" }} size={20} />;
 }
 
 export function Landing() {
@@ -56,21 +64,21 @@ export function Landing() {
         </p>
 
         <div className="hero-creatures" aria-hidden="true">
-          <CreatureAvatar speciesId="bulbasaur" size={92} />
-          <CreatureAvatar speciesId="lapras" size={116} />
-          <CreatureAvatar speciesId="steelix" size={92} />
+          <CreatureAvatar speciesId="bulbasaur" size={88} />
+          <CreatureAvatar speciesId="lapras" size={112} />
+          <CreatureAvatar speciesId="steelix" size={88} />
         </div>
 
         {loading ? (
-          <span className="skeleton" style={{ width: 260, height: 54, borderRadius: 999 }} />
+          <span className="skeleton" style={{ width: 260, height: 52 }} />
         ) : (
-          <a className="btn btn-discord hero-cta" href={api.discordLoginUrl()}>
+          <a className="btn btn-discord btn-lg hero-cta" href={api.discordLoginUrl()}>
             <DiscordGlyph />
             Entrer avec Discord
           </a>
         )}
 
-        <p className="hero-note">Aucun mot de passe à retenir — ton compte Discord suffit.</p>
+        <p className="hero-note">Aucun mot de passe — ton compte Discord suffit</p>
       </section>
 
       <section className="pillars stagger">

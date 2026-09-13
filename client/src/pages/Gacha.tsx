@@ -114,7 +114,7 @@ export function Gacha() {
           <div className={`gacha-stage ${phase === "revealed" ? "" : "stage-lit"}`}>
             <span
               className={`rays ${showRays ? "rays-on" : ""}`}
-              style={{ ["--ray-color" as string]: RARITY_AURA[rarity] ?? "rgba(255, 221, 148, 0.5)" }}
+              style={{ ["--ray-color" as string]: RARITY_AURA[rarity] ?? "rgba(255, 221, 148, 0.55)" }}
             />
 
             {phase !== "revealed" && (
@@ -149,20 +149,24 @@ export function Gacha() {
 
             {phase === "revealed" && result && (
               <div className={`reveal rarity-${rarity}`}>
-                <CreatureAvatar speciesId={result.species.id} size={148} />
-                <span className="badge">{RARITY_LABEL[rarity] ?? rarity}</span>
-                <h2 className="reveal-name">{result.species.name}</h2>
-                <Stars count={result.starTier.stars} />
-                <p className="reveal-tag">
-                  {result.isNew
-                    ? "Nouveau compagnon !"
-                    : `Doublon ×${result.quantity} · rendement ×${result.starTier.statMultiplier}`}
-                </p>
-                {result.starTier.nextThreshold !== null && (
-                  <p className="muted" style={{ fontSize: "var(--text-xs)" }}>
-                    Palier suivant à {result.starTier.nextThreshold} exemplaires
+                <CreatureAvatar speciesId={result.species.id} size={132} />
+
+                {/* The result lands in a handheld-RPG text box rather than loose copy. */}
+                <div className="reveal-box dialogue dialogue-caret">
+                  <span className="badge">{RARITY_LABEL[rarity] ?? rarity}</span>
+                  <h2 className="reveal-name dialogue-type">{result.species.name}</h2>
+                  <Stars count={result.starTier.stars} />
+                  <p className="reveal-tag">
+                    {result.isNew
+                      ? "Nouveau compagnon !"
+                      : `Doublon ×${result.quantity} · rendement ×${result.starTier.statMultiplier}`}
                   </p>
-                )}
+                  {result.starTier.nextThreshold !== null && (
+                    <p className="muted" style={{ fontSize: "var(--read-sm)" }}>
+                      Palier suivant à {result.starTier.nextThreshold} exemplaires
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -188,7 +192,7 @@ export function Gacha() {
             </button>
 
             {!affordable && eggCost && (
-              <p className="muted" style={{ fontSize: "var(--text-sm)" }}>
+              <p className="muted" style={{ fontSize: "var(--read-sm)" }}>
                 Il te manque {(eggCost.amount - balance).toLocaleString("fr-FR")} {resourceLabel(eggCost.resource)} —
                 récolte dans le Refuge pour en gagner.
               </p>

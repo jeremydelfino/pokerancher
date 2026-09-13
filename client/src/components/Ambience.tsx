@@ -1,54 +1,156 @@
 import { useMemo } from "react";
+import { PixelIcon, PixelLayer, makeGrid, noise, ridge, stamp, toRows, type Palette } from "./pixel.js";
 
-/** Decorative, non-interactive backdrop: sky, drifting clouds, rolling hills, floating pollen. */
+/**
+ * The animated backdrop: a banded dusk sky, drifting pixel clouds, a moon,
+ * layered hill silhouettes with tree lines, and fireflies over the meadow.
+ * Purely decorative — it never reacts to input.
+ */
 
-function Cloud({ width, opacity }: { width: number; opacity: number }) {
-  return (
-    <svg width={width} viewBox="0 0 200 80" fill="currentColor" aria-hidden="true">
-      <g opacity={opacity}>
-        <ellipse cx="60" cy="52" rx="44" ry="26" />
-        <ellipse cx="104" cy="40" rx="36" ry="30" />
-        <ellipse cx="142" cy="54" rx="32" ry="22" />
-        <rect x="40" y="52" width="120" height="24" rx="12" />
-      </g>
-    </svg>
-  );
-}
+const SKY_PALETTE: Palette = {
+  i: "#fdf3df",
+  j: "#d8c2d8",
+  o: "#fff6d8",
+  n: "#d9c48f",
+};
 
-const CLOUDS = [
-  { top: "9%", width: 220, opacity: 0.95, duration: 96, delay: -12 },
-  { top: "20%", width: 150, opacity: 0.7, duration: 132, delay: -58 },
-  { top: "32%", width: 280, opacity: 0.85, duration: 118, delay: -86 },
-  { top: "5%", width: 120, opacity: 0.55, duration: 158, delay: -30 },
+const HILL_PALETTE: Palette = {
+  a: "#463a66",
+  b: "#2f4a46",
+  c: "#24452f",
+  d: "#1a3324",
+  e: "#132618",
+};
+
+const MOON = [
+  "....oooooo....",
+  "..oooooooooo..",
+  ".oooooooooooo.",
+  ".oooooooooooo.",
+  "oooooonooooooo",
+  "ooooonnooooooo",
+  "ooooooooonnooo",
+  "oooooooooonooo",
+  ".oooooooooooo.",
+  ".oooooooooooo.",
+  "..oooooooooo..",
+  "....oooooo....",
 ];
 
+const CLOUD_SMALL = [
+  "...iiii....",
+  ".iiiiiiii..",
+  "iiiiiiiiiii",
+  ".jjjjjjjjj.",
+];
+
+const CLOUD_MID = [
+  "......iiii......",
+  "...iiiiiiiiii...",
+  ".iiiiiiiiiiiiii.",
+  "iiiiiiiiiiiiiiii",
+  ".jjjjjjjjjjjjjj.",
+];
+
+const CLOUD_BIG = [
+  ".......iiiiii.......",
+  "....iiiiiiiiiiii....",
+  "..iiiiiiiiiiiiiiii..",
+  "iiiiiiiiiiiiiiiiiiii",
+  "..jjjjjjjjjjjjjjjj..",
+];
+
+const CLOUDS = [
+  { art: CLOUD_BIG, top: "8%", scale: 5, duration: 118, delay: -20, opacity: 0.5 },
+  { art: CLOUD_MID, top: "17%", scale: 4, duration: 152, delay: -74, opacity: 0.38 },
+  { art: CLOUD_SMALL, top: "27%", scale: 3, duration: 96, delay: -44, opacity: 0.3 },
+  { art: CLOUD_MID, top: "36%", scale: 6, duration: 186, delay: -120, opacity: 0.26 },
+];
+
+/** Dark conifer silhouette dotted along the ridge lines. */
+const PINE = [
+  "..x..",
+  ".xxx.",
+  "..x..",
+  ".xxx.",
+  "xxxxx",
+  "..x..",
+];
+
+const HILL_W = 240;
+const HILL_H = 60;
+
+function buildHills(): string[] {
+  const g = makeGrid(HILL_W, HILL_H);
+
+  // Three ridges, each a sum of two sines so the crests never repeat visibly.
+  ridge(g, (x) => 22 + Math.sin(x / 19) * 4 + Math.sin(x / 6.5 + 1.3) * 2, "a");
+  ridge(g, (x) => 33 + Math.sin(x / 13 + 2) * 4 + Math.sin(x / 5 + 0.4) * 1.5, "b");
+
+  // Tree line rides the second ridge before the front hill buries its feet.
+  for (let i = 0; i < 34; i++) {
+    const x = Math.round(noise(i * 3.1) * HILL_W);
+    const top = 33 + Math.sin(x / 13 + 2) * 4 + Math.sin(x / 5 + 0.4) * 1.5;
+    const art = PINE.map((row) => row.replace(/x/g, noise(i * 7.7) > 0.5 ? "d" : "c"));
+    stamp(g, art, x, Math.round(top) - PINE.length + 1);
+  }
+
+  ridge(g, (x) => 44 + Math.sin(x / 23 + 4) * 3 + Math.sin(x / 9) * 1.2, "d");
+  ridge(g, (x) => 53 + Math.sin(x / 31 + 1) * 2, "e");
+
+  return toRows(g);
+}
+
 export function Ambience({ variant = "soft" }: { variant?: "full" | "soft" }) {
-  const pollen = useMemo(
+  const hills = useMemo(buildHills, []);
+
+  const stars = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, i) => ({
-        left: `${(i * 5.7 + ((i * 37) % 11)) % 100}%`,
-        duration: 16 + ((i * 7) % 13),
-        delay: -((i * 3.3) % 20),
-        drift: `${((i * 29) % 90) - 45}px`,
-        scale: 0.6 + ((i * 13) % 9) / 10,
+      Array.from({ length: 46 }, (_, i) => ({
+        left: `${noise(i * 1.7) * 100}%`,
+        top: `${noise(i * 4.3) * 92}%`,
+        duration: `${2.2 + noise(i * 2.9) * 3.4}s`,
+        delay: `${-noise(i * 5.1) * 4}s`,
+        big: noise(i * 8.3) > 0.86,
       })),
     []
   );
 
-  const blades = useMemo(
+  const fireflies = useMemo(
     () =>
-      Array.from({ length: 28 }, (_, i) => ({
-        height: 26 + ((i * 17) % 44),
-        duration: `${3.2 + ((i * 7) % 22) / 10}s`,
-        delay: `${-((i * 4) % 30) / 10}s`,
+      Array.from({ length: variant === "full" ? 20 : 10 }, (_, i) => ({
+        left: `${noise(i * 2.3) * 100}%`,
+        bottom: `${noise(i * 6.1) * 40}%`,
+        duration: `${7 + noise(i * 3.7) * 7}s`,
+        delay: `${-noise(i * 9.2) * 12}s`,
+        x: `${(noise(i * 11.3) - 0.5) * 70}px`,
+        y: `${-40 - noise(i * 13.1) * 90}px`,
       })),
-    []
+    [variant]
   );
 
   return (
     <div className="ambience" aria-hidden="true">
       <div className="ambience-sky" />
-      <div className="ambience-sun" />
+
+      <div className="ambience-stars">
+        {stars.map((star, i) => (
+          <span
+            key={i}
+            className={`star ${star.big ? "star-big" : ""}`}
+            style={{
+              left: star.left,
+              top: star.top,
+              animationDuration: star.duration,
+              animationDelay: star.delay,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="ambience-moon">
+        <PixelIcon art={MOON} palette={SKY_PALETTE} size={72} />
+      </div>
 
       {CLOUDS.map((cloud, i) => (
         <div
@@ -56,49 +158,47 @@ export function Ambience({ variant = "soft" }: { variant?: "full" | "soft" }) {
           className="cloud"
           style={{
             top: cloud.top,
+            opacity: cloud.opacity,
             animationDuration: `${cloud.duration}s`,
             animationDelay: `${cloud.delay}s`,
           }}
         >
-          <Cloud width={cloud.width} opacity={cloud.opacity} />
+          <PixelIcon
+            art={cloud.art}
+            palette={SKY_PALETTE}
+            size={cloud.art[0].length * cloud.scale}
+          />
         </div>
       ))}
 
-      <div className="pollen-field">
-        {pollen.map((p, i) => (
+      <svg
+        className="hills"
+        viewBox={`0 0 ${HILL_W} ${HILL_H}`}
+        preserveAspectRatio="xMidYMax slice"
+        shapeRendering="crispEdges"
+      >
+        <PixelLayer rows={hills} palette={HILL_PALETTE} />
+      </svg>
+
+      <div className="firefly-field">
+        {fireflies.map((fly, i) => (
           <span
             key={i}
-            className="pollen"
+            className="firefly"
             style={{
-              left: p.left,
-              animationDuration: `${p.duration}s`,
-              animationDelay: `${p.delay}s`,
-              transform: `scale(${p.scale})`,
-              ["--pollen-x" as string]: p.drift,
+              left: fly.left,
+              bottom: fly.bottom,
+              animationDuration: fly.duration,
+              animationDelay: fly.delay,
+              ["--ff-x" as string]: fly.x,
+              ["--ff-y" as string]: fly.y,
             }}
           />
         ))}
       </div>
 
-      <svg className="hills" viewBox="0 0 1440 420" preserveAspectRatio="none">
-        <path d="M0 214 C220 150 340 240 560 214 C760 190 900 128 1120 168 C1270 196 1360 186 1440 166 L1440 420 L0 420 Z" fill="var(--meadow-far)" opacity="0.85" />
-        <path d="M0 282 C200 232 360 306 600 282 C820 260 980 208 1200 246 C1300 264 1380 258 1440 246 L1440 420 L0 420 Z" fill="var(--meadow-near)" opacity="0.92" />
-        <path d="M0 350 C240 316 420 372 680 352 C900 336 1080 300 1440 330 L1440 420 L0 420 Z" fill="var(--meadow-deep)" />
-      </svg>
-
-      {variant === "full" && (
-        <div className="grass-blades">
-          {blades.map((b, i) => (
-            <span
-              key={i}
-              className="blade"
-              style={{ height: b.height, animationDuration: b.duration, animationDelay: b.delay }}
-            />
-          ))}
-        </div>
-      )}
-
-      {variant === "soft" && <div className="ambience-veil" />}
+      <div className="ambience-dither" />
+      <div className="ambience-veil" />
     </div>
   );
 }
