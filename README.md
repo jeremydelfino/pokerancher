@@ -253,6 +253,30 @@ Si une image ne charge pas (hors-ligne, URL morte, source indisponible), le jeu 
 
 ⚠️ **Avant toute mise en ligne publique**, repasse sur `VITE_SPRITE_SOURCE="svg"`. Les sprites sont l'élément le plus surveillé : un fan-game qui reste en local ne dérange personne, un site public qui les affiche est la cible habituelle des demandes de retrait.
 
+### Configuration des sprites
+
+**Pour le développement local**, utilise `VITE_SPRITE_SOURCE="pokeapi"` :
+```env
+VITE_SPRITE_SOURCE="pokeapi"
+VITE_SPRITE_BASE_URL=""
+```
+
+**Si les sprites ne s'affichent pas** :
+1. Vérifie que `.env` a `VITE_SPRITE_SOURCE="pokeapi"` (pas `"custom"`)
+2. Si c'est `"custom"`, tu dois servir des sprites sur `VITE_SPRITE_BASE_URL` (ex: un serveur HTTP local)
+3. Relance le serveur client : `npm run dev:client`
+
+**Pour servir des sprites locaux** (mode `"custom"`), télécharge les images Pokémon en `.png` et serve-les :
+```bash
+# Exemple : servir des sprites depuis le port 8099
+python3 -m http.server 8099 --directory ./sprites
+```
+Puis configure :
+```env
+VITE_SPRITE_SOURCE="custom"
+VITE_SPRITE_BASE_URL="http://localhost:8099"
+```
+
 ## 🔐 Sécurité
 
 - ⚠️ **Ne partage JAMAIS** ton `.env` publiquement (contient secrets Discord + DB)
