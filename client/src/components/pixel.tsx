@@ -72,7 +72,14 @@ export function ridge(g: Grid, top: (x: number) => number, ch: string, until?: n
   }
 }
 
-/** Paints stacked horizontal bands with a dithered seam between each pair. */
+/**
+ * Paints stacked horizontal bands with a dithered seam between each pair, then
+ * floods the rest of the grid with the last band's colour.
+ *
+ * The flood matters: terrain drawn afterwards rarely starts on exactly the row
+ * the bands ended on, and any cell left untouched renders as a hole onto
+ * whatever sits behind the SVG.
+ */
 export function paintBands(g: Grid, bands: ReadonlyArray<readonly [string, number]>): number {
   const width = g[0]?.length ?? 0;
   let y = 0;
@@ -84,6 +91,9 @@ export function paintBands(g: Grid, bands: ReadonlyArray<readonly [string, numbe
       y++;
     }
   });
+
+  const last = bands[bands.length - 1]?.[0];
+  if (last && y < g.length) box(g, 0, y, width, g.length - y, last);
   return y;
 }
 

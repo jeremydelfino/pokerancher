@@ -24,15 +24,6 @@
     0 var(--px2) 0 0 rgba(18, 14, 28, 0.42);
 }
 
-.card-dark {
-  background: var(--surface-dark-raised);
-  color: var(--ink-on-dark);
-}
-
-.card-dark .muted {
-  color: var(--ink-on-dark-soft);
-}
-
 /* --- Buttons -------------------------------------------------------------- */
 
 .btn {
@@ -145,8 +136,8 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: var(--c-deep);
-  box-shadow: 0 var(--px) 0 0 var(--ink), 0 var(--px2) 0 0 rgba(18, 14, 28, 0.5);
+  background: var(--chrome);
+  box-shadow: 0 var(--px) 0 0 var(--ink), 0 var(--px2) 0 0 rgba(18, 14, 28, 0.45);
 }
 
 .topbar-inner {
@@ -157,13 +148,16 @@
   display: flex;
   align-items: center;
   gap: var(--s4);
-  flex-wrap: wrap;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
+  flex: none;
+}
+
+.brand-name {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-lg);
@@ -180,13 +174,25 @@
   animation: px-bob 600ms steps(1, end) infinite;
 }
 
+/* Segmented control: one sunken track, the active tab raised inside it.
+   Reads as a single switch rather than two competing buttons. */
 .tabs {
   display: flex;
-  gap: var(--px);
+  gap: 3px;
+  padding: 3px;
+  flex: none;
+  background: var(--chrome-sunken);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink);
 }
 
 .tab {
-  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--s2) var(--s4);
   font-family: var(--font-display);
   font-weight: 700;
@@ -194,44 +200,82 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-on-dark-soft);
-  background: var(--c-plum);
-  box-shadow:
-    0 calc(-1 * var(--px)) 0 0 var(--ink),
-    0 var(--px) 0 0 var(--ink),
-    calc(-1 * var(--px)) 0 0 0 var(--ink),
-    var(--px) 0 0 0 var(--ink);
-  transition: color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast);
+  background: transparent;
+  transition: color var(--dur-fast), background var(--dur-fast);
 }
 
 .tab:hover {
   color: var(--c-white);
-  background: var(--c-violet);
+  background: var(--chrome-hover);
 }
 
-.tab-active {
+.tab-active,
+.tab-active:hover {
   color: var(--ink);
   background: var(--c-gold);
-  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 0 rgba(26, 20, 40, 0.22);
 }
 
-.topbar-right {
+/* The wallet: five resources read as one panel, not five floating chips. */
+.wallet {
   display: flex;
   align-items: center;
-  gap: var(--s3);
+  gap: 2px;
   margin-left: auto;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  object-fit: cover;
-  image-rendering: pixelated;
-  background: var(--c-mauve);
+  padding: 3px;
+  background: var(--chrome-sunken);
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
     0 var(--px) 0 0 var(--ink),
     calc(-1 * var(--px)) 0 0 0 var(--ink),
     var(--px) 0 0 0 var(--ink);
+}
+
+.wallet .res-pill {
+  padding: 2px var(--s2);
+  background: transparent;
+  box-shadow: none;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: none;
+  padding: var(--px) var(--s3) var(--px) var(--px);
+  color: var(--c-white);
+  background: var(--chrome-raised);
+  cursor: pointer;
+  transition: background var(--dur-fast), transform var(--dur-fast);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink);
+}
+
+.user-chip:hover {
+  background: var(--chrome-hover);
+}
+
+.user-chip:active {
+  transform: translateY(2px);
+}
+
+.user-chip-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  text-shadow: 2px 2px 0 rgba(26, 20, 40, 0.5);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  background: var(--c-mauve);
+  box-shadow: inset 0 0 0 2px rgba(26, 20, 40, 0.4);
 }
 
 .avatar-initial {
@@ -240,13 +284,6 @@
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--c-white);
-}
-
-.username {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  color: var(--c-white);
-  text-shadow: 2px 2px 0 var(--ink);
 }
 
 /* --- Resources ------------------------------------------------------------ */
@@ -267,7 +304,7 @@
   font-size: var(--read-sm);
   font-variant-numeric: tabular-nums;
   color: var(--c-white);
-  background: var(--c-plum);
+  background: var(--chrome-raised);
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
     0 var(--px) 0 0 var(--ink),
@@ -434,13 +471,32 @@
   transform: translateY(-3px);
 }
 
-/* The diorama window: a framed opening onto the pen. */
+/* The pen is framed in planks: stacked bands for the boards, a repeating
+   vertical fade for the grain, and four nails pinned to the corners. */
+.slot-frame {
+  position: relative;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 9px 9px, var(--c-wood-deep) 0 2px, transparent 2px),
+    radial-gradient(circle at calc(100% - 9px) 9px, var(--c-wood-deep) 0 2px, transparent 2px),
+    radial-gradient(circle at 9px calc(100% - 9px), var(--c-wood-deep) 0 2px, transparent 2px),
+    radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), var(--c-wood-deep) 0 2px, transparent 2px),
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(67, 44, 28, 0.2) 11px 13px),
+    repeating-linear-gradient(
+      180deg,
+      var(--c-wood-hi) 0 3px,
+      var(--c-wood) 3px 11px,
+      var(--c-wood-dk) 11px 14px
+    );
+  box-shadow: inset 0 0 0 2px rgba(255, 253, 245, 0.14);
+}
+
 .slot-scene {
   position: relative;
-  height: 230px;
+  height: 200px;
   overflow: hidden;
-  background: var(--c-deep);
-  box-shadow: inset 0 0 0 var(--px) var(--ink);
+  background: var(--chrome-sunken);
+  box-shadow: 0 0 0 3px var(--c-wood-deep), inset 0 0 0 2px rgba(18, 14, 28, 0.45);
 }
 
 .scene-art {
@@ -452,10 +508,36 @@
   image-rendering: pixelated;
 }
 
+/* Darkens the corners so the eye lands on the creature in the middle. */
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 72% 74% at 50% 64%,
+    transparent 0 52%,
+    rgba(18, 14, 28, 0.34) 100%
+  );
+}
+
+/* Hard-edged contact shadow — without it the creature floats over the ground. */
+.scene-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 1;
+  width: 72px;
+  height: 10px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(18, 14, 28, 0.42) 0 62%, transparent 62%);
+}
+
 .slot-scene .creature {
   position: absolute;
   left: 50%;
-  bottom: 12px;
+  bottom: 14px;
   transform: translateX(-50%);
   z-index: 2;
 }
@@ -479,7 +561,7 @@
 .gain-float {
   position: absolute;
   left: 50%;
-  top: 38%;
+  top: 34%;
   z-index: 3;
   transform: translateX(-50%);
   font-family: var(--font-display);
@@ -603,7 +685,7 @@
   overflow-y: auto;
   transform: translateX(-50%);
   padding: var(--s5) var(--s5) var(--s6);
-  background: var(--surface-dark-raised);
+  background: var(--chrome-raised);
   color: var(--ink-on-dark);
   box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--ink), inset 0 var(--px) 0 0 rgba(255, 255, 255, 0.12);
   animation: slide-up var(--dur-slow) var(--ease-pop);
@@ -661,6 +743,145 @@
 }
 
 .pick-meta {
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+/* --- Settings modal ------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(18, 14, 28, 0.75);
+  animation: fade-in var(--dur) var(--ease-out);
+}
+
+.modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 71;
+  width: min(480px, calc(100% - var(--s6)));
+  max-height: 86vh;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  padding: var(--s5);
+  background: var(--surface);
+  color: var(--ink);
+  animation: pop-in var(--dur) var(--ease-pop);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    0 var(--px2) 0 0 rgba(18, 14, 28, 0.5);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+}
+
+.modal-title {
+  font-size: var(--text-xl);
+}
+
+.modal-section {
+  color: var(--ink-faint);
+  margin-bottom: var(--s2);
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s3);
+}
+
+.theme-card {
+  display: grid;
+  gap: var(--px);
+  padding: var(--s2);
+  text-align: left;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-pop);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink);
+}
+
+.theme-card:hover {
+  transform: translateY(-3px);
+}
+
+.theme-card-active {
+  background: var(--c-gold);
+}
+
+/* Both previews are hardcoded: each has to show its own sky whatever theme is
+   currently active, so they cannot use the themed variables. */
+.theme-preview {
+  display: block;
+  height: 56px;
+  margin-bottom: var(--px);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.theme-preview-night {
+  background: linear-gradient(
+    to bottom,
+    #120e1c 0 18%,
+    #372a4d 18% 42%,
+    #6d5088 42% 60%,
+    #a45f8f 60% 74%,
+    #e89b72 74% 89%,
+    #f4c48a 89% 100%
+  );
+}
+
+.theme-preview-dawn {
+  background: linear-gradient(
+    to bottom,
+    #1b2a4e 0 18%,
+    #33477a 18% 42%,
+    #5f80b0 42% 60%,
+    #c49aa8 60% 74%,
+    #f6c98d 74% 89%,
+    #ffe9b8 89% 100%
+  );
+}
+
+.theme-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+.theme-hint {
+  font-size: var(--read-sm);
+  line-height: 1.2;
+  color: var(--ink-soft);
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  box-shadow: inset 0 2px 0 0 rgba(26, 20, 40, 0.14);
+}
+
+.modal-user {
   font-size: var(--read-sm);
   color: var(--ink-soft);
 }
@@ -750,9 +971,9 @@
   display: block;
   background: linear-gradient(
     90deg,
-    var(--c-plum) 0 40%,
-    var(--c-violet) 40% 60%,
-    var(--c-plum) 60% 100%
+    var(--chrome-raised) 0 40%,
+    var(--chrome-hover) 40% 60%,
+    var(--chrome-raised) 60% 100%
   );
   background-size: 220% 100%;
   animation: skeleton-sweep 1.4s steps(8, end) infinite;
@@ -763,8 +984,10 @@
     var(--px) 0 0 0 var(--ink);
 }
 
-@media (max-width: 900px) {
-  .topbar-name {
+/* --- Responsive ----------------------------------------------------------- */
+
+@media (max-width: 1040px) {
+  .brand-name {
     display: none;
   }
 }
@@ -773,7 +996,39 @@
   .slot-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .topbar-res {
+  /* A shorter window on a narrow card: the scene is scaled to cover, so a tall
+     box on a narrow card would crop the sides off the diorama instead. */
+  .slot-scene {
+    height: 150px;
+  }
+
+  /* Brand and account on the first row, tabs full width underneath. */
+  .topbar-inner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "brand user"
+      "tabs tabs";
+    gap: var(--s2);
+    padding: var(--s2);
+  }
+  .brand {
+    grid-area: brand;
+  }
+  .brand-name {
+    display: inline;
+  }
+  .user-chip {
+    grid-area: user;
+    justify-self: end;
+  }
+  .tabs {
+    grid-area: tabs;
+  }
+  .tab {
+    flex: 1;
+  }
+  .wallet {
     display: none;
   }
 }
@@ -785,13 +1040,13 @@
 }
 
 @media (max-width: 520px) {
-  .topbar-inner {
-    gap: var(--s2);
-  }
-  .tab {
-    padding: var(--s2) var(--s3);
+  .brand-name {
+    display: none;
   }
   .sheet-list {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  .theme-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

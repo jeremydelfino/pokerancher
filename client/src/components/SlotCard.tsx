@@ -68,14 +68,20 @@ export function SlotCard({ slot, fetchedAt, starsFor, busy, gain, onClaim, onOpe
         ["--slot-accent-dk" as string]: accent.dark,
       }}
     >
-      <div className="slot-scene">
-        <SlotScene slotType={slot.type} />
-        {assigned ? (
-          <CreatureAvatar speciesId={assigned.speciesId} size={92} />
-        ) : (
-          <span className="slot-empty-hint">Enclos libre</span>
-        )}
-        {gain !== null && <span className="gain-float">+{gain.toLocaleString("fr-FR")}</span>}
+      <div className="slot-frame">
+        <div className="slot-scene">
+          <SlotScene slotType={slot.type} />
+          <span className="scene-vignette" />
+          {assigned ? (
+            <>
+              <span className="scene-floor" />
+              <CreatureAvatar speciesId={assigned.speciesId} size={92} />
+            </>
+          ) : (
+            <span className="slot-empty-hint">Enclos libre</span>
+          )}
+          {gain !== null && <span className="gain-float">+{gain.toLocaleString("fr-FR")}</span>}
+        </div>
       </div>
 
       <div className="slot-body">

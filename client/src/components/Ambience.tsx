@@ -8,18 +8,19 @@ import { PixelIcon, PixelLayer, makeGrid, noise, ridge, stamp, toRows, type Pale
  */
 
 const SKY_PALETTE: Palette = {
-  i: "#fdf3df",
-  j: "#d8c2d8",
-  o: "#fff6d8",
-  n: "#d9c48f",
+  i: "var(--cloud)",
+  j: "var(--cloud-shade)",
+  o: "var(--celestial)",
+  n: "var(--celestial-mark)",
 };
 
 const HILL_PALETTE: Palette = {
-  a: "#463a66",
-  b: "#2f4a46",
-  c: "#24452f",
-  d: "#1a3324",
-  e: "#132618",
+  a: "var(--hill-far)",
+  b: "var(--hill-mid)",
+  c: "var(--hill-tree-a)",
+  d: "var(--hill-tree-b)",
+  n: "var(--hill-near)",
+  e: "var(--hill-deep)",
 };
 
 const MOON = [
@@ -95,7 +96,7 @@ function buildHills(): string[] {
     stamp(g, art, x, Math.round(top) - PINE.length + 1);
   }
 
-  ridge(g, (x) => 44 + Math.sin(x / 23 + 4) * 3 + Math.sin(x / 9) * 1.2, "d");
+  ridge(g, (x) => 44 + Math.sin(x / 23 + 4) * 3 + Math.sin(x / 9) * 1.2, "n");
   ridge(g, (x) => 53 + Math.sin(x / 31 + 1) * 2, "e");
 
   return toRows(g);

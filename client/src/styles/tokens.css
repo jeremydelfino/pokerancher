@@ -1,12 +1,20 @@
 /* ============================================================================
-   Design tokens — "lo-fi ranch at dusk".
-   A tight, hand-picked pixel palette: cool purple night up top, warm peach on
-   the horizon, muted sage meadows. Everything is deliberately desaturated so
-   the sprite colours stay the brightest thing on screen.
+   Design tokens.
+
+   Two layers:
+     1. --c-*   raw palette. Fixed, never themed. The UI chrome (cream panels,
+                ink outlines, button colours) is built from these so the HUD
+                looks the same whatever time of day it is.
+     2. --sky-*, --hill-*, --sc-*, --chrome-*
+                the world. These DO switch with the theme, because the sky,
+                the hills and the pen dioramas are what the player reads as
+                "night" or "sunrise".
+
+   Themes are selected with data-theme on <html>; night is the default.
    ========================================================================== */
 
 :root {
-  /* --- Night & sky ramp (dark -> warm) --- */
+  /* --- Raw palette: night ramp --- */
   --c-void: #120e1c;
   --c-night: #1a1626;
   --c-deep: #241d35;
@@ -21,29 +29,30 @@
   --c-paper: #fbf3dd;
   --c-white: #fffdf5;
 
-  /* --- Meadow --- */
+  /* --- Raw palette: meadow --- */
   --c-grass-hi: #b6d98f;
   --c-grass: #7fb069;
   --c-grass-mid: #5f9a5e;
   --c-grass-dk: #3c6b4a;
   --c-forest: #24452f;
 
-  /* --- Water --- */
+  /* --- Raw palette: water --- */
   --c-water-hi: #9fdbe8;
   --c-water: #5aa8c4;
   --c-water-dk: #35708f;
   --c-water-deep: #24506b;
 
-  /* --- Stone & wood --- */
+  /* --- Raw palette: stone & wood --- */
   --c-stone-hi: #b9b3c9;
   --c-stone: #8a84a0;
   --c-stone-dk: #5b5674;
   --c-stone-deep: #3b3752;
-  --c-wood-hi: #c08a55;
-  --c-wood: #8b5e3c;
-  --c-wood-dk: #5c3d28;
+  --c-wood-hi: #c9975f;
+  --c-wood: #96663f;
+  --c-wood-dk: #66452c;
+  --c-wood-deep: #432c1c;
 
-  /* --- Accents --- */
+  /* --- Raw palette: accents --- */
   --c-berry: #e05c72;
   --c-amber: #f2b03d;
   --c-gold: #ffd479;
@@ -52,19 +61,17 @@
   --c-discord: #5865f2;
   --c-danger: #e05c72;
 
-  /* --- Ink: every pixel outline in the UI --- */
+  /* --- Ink --- */
   --ink: #1a1428;
   --ink-soft: #4a3f63;
   --ink-faint: #7a6e96;
-  --ink-on-dark: #efe6ff;
-  --ink-on-dark-soft: #b9aed6;
+  --ink-on-dark: #f3ecff;
+  --ink-on-dark-soft: #c3b9dd;
 
   /* --- Surfaces --- */
   --surface: var(--c-paper);
   --surface-raised: var(--c-white);
   --surface-sunken: #efe2c4;
-  --surface-dark: var(--c-deep);
-  --surface-dark-raised: var(--c-plum);
 
   /* --- Resources --- */
   --res-berry: #e05c72;
@@ -78,12 +85,6 @@
   --rarity-rare: #5aa8c4;
   --rarity-epic: #c56bd6;
   --rarity-legendary: #f2b03d;
-
-  /* --- Slot identity --- */
-  --slot-berry: #e07a86;
-  --slot-fish: #5aa8c4;
-  --slot-wood: #8fbf6a;
-  --slot-mine: #a89ad4;
 
   /* --- Type --- */
   --font-display: "Pixelify Sans", "Courier New", monospace;
@@ -117,15 +118,132 @@
   --px: 4px;
   --px2: 8px;
 
-  /* --- Motion: steps() for sprite-like snap, linear for drifts --- */
+  /* --- Motion --- */
   --dur-fast: 120ms;
   --dur: 220ms;
   --dur-slow: 460ms;
-  --ease-snap: steps(4, end);
   --ease-pop: cubic-bezier(0.34, 1.7, 0.5, 1);
   --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
 
   /* --- Layout --- */
   --page-max: 1180px;
-  --topbar-h: 64px;
+  --topbar-h: 60px;
+}
+
+/* ============================================================================
+   Theme: NIGHT (default)
+   ========================================================================== */
+
+:root,
+:root[data-theme="night"] {
+  /* Page sky, top to horizon */
+  --sky-1: #120e1c;
+  --sky-2: #1a1626;
+  --sky-3: #241d35;
+  --sky-4: #372a4d;
+  --sky-5: #4e3a6b;
+  --sky-6: #6d5088;
+  --sky-7: #a45f8f;
+  --sky-8: #d97f8c;
+  --sky-9: #e89b72;
+  --sky-10: #f4c48a;
+
+  --celestial: #fdf3df;
+  --celestial-mark: #d9c48f;
+  --cloud: #fdf3df;
+  --cloud-shade: #d8c2d8;
+  --star-opacity: 1;
+
+  --hill-far: #463a66;
+  --hill-mid: #2f4a46;
+  --hill-tree-a: #24452f;
+  --hill-tree-b: #1a3324;
+  --hill-near: #1a3324;
+  --hill-deep: #132618;
+
+  --veil-top: rgba(18, 14, 28, 0.55);
+  --veil-mid: rgba(18, 14, 28, 0.25);
+  --veil-low: rgba(18, 14, 28, 0.45);
+  --veil-bottom: rgba(18, 14, 28, 0.72);
+  --crt-alpha: rgba(18, 14, 28, 0.22);
+  --crt-vignette: rgba(18, 14, 28, 0.55);
+
+  /* Dark UI chrome: top bar, sheets, summary strip */
+  --chrome: #241d35;
+  --chrome-raised: #372a4d;
+  --chrome-sunken: #171225;
+  --chrome-hover: #4e3a6b;
+
+  /* Pen diorama sky ramp, dark to warm */
+  --sc-1: #1f1930;
+  --sc-2: #2d2443;
+  --sc-3: #3f2f5c;
+  --sc-4: #5a4076;
+  --sc-5: #8a5580;
+  --sc-6: #c9727d;
+  --sc-7: #e8956f;
+  --sc-8: #f4c48a;
+  --sc-sun: #fff6d8;
+
+  /* Distant layers are hazed toward the sky so depth reads without fighting
+     the foreground for attention. */
+  --sc-far: #3d3355;
+  /* One wash over each pen's terrain: shifts it to the hour and softens the
+     contrast so the occupant stays the most readable thing in the frame. */
+  --sc-tint: rgba(58, 38, 92, 0.22);
+}
+
+/* ============================================================================
+   Theme: DAWN — cool blue overhead, gold on the horizon, everything brighter.
+   ========================================================================== */
+
+:root[data-theme="dawn"] {
+  --sky-1: #1b2a4e;
+  --sky-2: #24325c;
+  --sky-3: #33477a;
+  --sky-4: #45619b;
+  --sky-5: #5f80b0;
+  --sky-6: #8a9fbf;
+  --sky-7: #c49aa8;
+  --sky-8: #e8a789;
+  --sky-9: #f6c98d;
+  --sky-10: #ffe9b8;
+
+  --celestial: #fff3cf;
+  --celestial-mark: #f4c48a;
+  --cloud: #fff1dc;
+  --cloud-shade: #d3b9c4;
+  --star-opacity: 0.25;
+
+  --hill-far: #7d8fb5;
+  --hill-mid: #5b8a74;
+  --hill-tree-a: #3f6f52;
+  --hill-tree-b: #2f5842;
+  --hill-near: #2f5842;
+  --hill-deep: #244634;
+
+  --veil-top: rgba(24, 32, 58, 0.4);
+  --veil-mid: rgba(24, 32, 58, 0.16);
+  --veil-low: rgba(24, 32, 58, 0.3);
+  --veil-bottom: rgba(24, 32, 58, 0.58);
+  --crt-alpha: rgba(24, 32, 58, 0.15);
+  --crt-vignette: rgba(24, 32, 58, 0.42);
+
+  --chrome: #2a3a5e;
+  --chrome-raised: #3d5280;
+  --chrome-sunken: #1d2947;
+  --chrome-hover: #5473a8;
+
+  --sc-1: #2c4470;
+  --sc-2: #3d5f92;
+  --sc-3: #5b82ab;
+  --sc-4: #8aa8c0;
+  --sc-5: #c4a5ac;
+  --sc-6: #e8a789;
+  --sc-7: #f6c98d;
+  --sc-8: #ffe3a8;
+  --sc-sun: #fff8e2;
+
+  --sc-far: #61789c;
+  --sc-tint: rgba(255, 214, 150, 0.14);
 }

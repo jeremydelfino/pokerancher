@@ -15,20 +15,24 @@ import {
 } from "./pixel.js";
 
 /**
- * One pixel diorama per Refuge pen.
+ * One pixel diorama per Refuge pen, composed on an 80x36 grid.
  *
- * Each scene is composed on a 64x34 grid: sky bands first, then terrain, then
- * hand-drawn sprites stamped in at fixed spots. The middle column is kept clear
- * because the assigned creature stands there.
+ * Legibility drives the layout:
+ *   - rows 0-19 are sky, 20-27 midground, 28-35 a calm foreground band. The
+ *     creature's feet land somewhere in that band whatever the card width, so
+ *     it always stands on solid ground.
+ *   - columns 30-50 stay clear; that is where the creature stands.
+ *   - distant layers are drawn in --sc-far, a hazed tone, so depth reads
+ *     without the background competing with the occupant.
  *
- * Anything that moves lives in a separate <g> on top, animated in CSS — the
- * static grid is built once per slot type and memoised.
+ * The sky ramp comes from themed CSS variables, so switching night/dawn
+ * repaints every scene without re-rendering anything.
  */
 
-const W = 64;
-const H = 34;
+const W = 80;
+const H = 36;
 
-/** Accent per pen, used by the card for its gauge and trim. */
+/** Accent per pen, used by the card for its gauge. */
 export const SLOT_ACCENT: Record<string, { accent: string; dark: string }> = {
   BERRY_FARM: { accent: "#e8a0ac", dark: "#c05a70" },
   FISHING_DOCK: { accent: "#9fdbe8", dark: "#3f86a8" },
@@ -37,21 +41,22 @@ export const SLOT_ACCENT: Record<string, { accent: string; dark: string }> = {
 };
 
 const P: Palette = {
-  // sky ramp, dark to warm
-  "1": "#1f1930",
-  "2": "#2d2443",
-  "3": "#3f2f5c",
-  "4": "#5a4076",
-  "5": "#8a5580",
-  "6": "#c9727d",
-  "7": "#e8956f",
-  "8": "#f4c48a",
-  "0": "#fff6d8",
+  // sky ramp — themed
+  "1": "var(--sc-1)",
+  "2": "var(--sc-2)",
+  "3": "var(--sc-3)",
+  "4": "var(--sc-4)",
+  "5": "var(--sc-5)",
+  "6": "var(--sc-6)",
+  "7": "var(--sc-7)",
+  "8": "var(--sc-8)",
+  "0": "var(--sc-sun)",
+  F: "var(--sc-far)",
   // grass
   g: "#8fbf6a",
   G: "#5f9a5e",
   H: "#3c6b4a",
-  J: "#24452f",
+  J: "#35633f",
   l: "#b6d98f",
   // soil
   d: "#a8703f",
@@ -65,7 +70,6 @@ const P: Palette = {
   b: "#9fdbe8",
   B: "#5aa8c4",
   N: "#35708f",
-  M: "#24506b",
   // stone
   s: "#b9b3c9",
   S: "#8a84a0",
@@ -168,6 +172,9 @@ const LANTERN = ["..k..", ".kkk.", "kyyyk", "kyiyk", "kyyyk", ".kkk."];
 
 const SUN = ["..00..", ".0000.", "000000", "000000", ".0000.", "..00.."];
 
+/** Squat conifer for the far treeline — no trunk, so neighbours merge. */
+const FAR_TREE = ["..F..", "..F..", ".FFF.", ".FFF.", "FFFFF", "FFFFF"];
+
 const SCENE_CLOUD = ["..iii...", ".iiiiii.", "iiiiiiii"];
 
 const LEAF = ["ff", "ff"];
@@ -178,13 +185,16 @@ const SPARK = ["c"];
  *  sparkles scattered over a wall read as confetti. */
 const ORE = [".pc", "pp."];
 
+/** Columns the creature occupies; nothing tall is placed here. */
+const CLEAR_FROM = 30;
+const CLEAR_TO = 50;
+
 /* --- Scene builders ------------------------------------------------------- */
 
-/** Scatters tufts of grass along a ground line, skipping the creature's spot. */
 function scatterTufts(g: Grid, y: number, seed: number, count: number): void {
   for (let i = 0; i < count; i++) {
     const x = Math.round(noise(seed + i * 2.7) * (W - 6));
-    if (x > 22 && x < 42) continue;
+    if (x > CLEAR_FROM && x < CLEAR_TO) continue;
     stamp(g, TUFT, x, y);
   }
 }
@@ -194,40 +204,38 @@ function buildBerryFarm(): string[] {
   paintBands(g, [
     ["3", 2],
     ["4", 3],
-    ["5", 2],
-    ["6", 2],
+    ["5", 3],
+    ["6", 3],
     ["7", 2],
     ["8", 2],
   ]);
 
-  stamp(g, SUN, 48, 9);
+  stamp(g, SUN, 62, 11);
 
-  // Rolling pasture behind the working field.
-  ridge(g, (x) => 17 + Math.sin(x / 11) * 2 + Math.sin(x / 4 + 1) * 1, "H", 22);
-  box(g, 0, 20, W, 14, "G");
-  box(g, 0, 20, W, 1, "g");
+  // Hazed hedgerow in the distance, then the pasture.
+  ridge(g, (x) => 19 + Math.sin(x / 13) * 1.6, "F", 23);
+  box(g, 0, 21, W, 15, "G");
+  box(g, 0, 21, W, 1, "g");
 
-  // Tilled soil in the foreground, ridged every third row.
-  box(g, 0, 26, W, 8, "D");
-  for (let y = 27; y < H; y += 3) box(g, 0, y, W, 1, "d");
-  for (let i = 0; i < 26; i++) {
-    const x = Math.round(noise(i * 5.3) * W);
-    const y = 27 + Math.round(noise(i * 9.1) * 6);
-    put(g, x, y, "E");
+  // Foreground: worked soil, ridged every third row and lightly stony.
+  box(g, 0, 28, W, 8, "D");
+  for (let y = 29; y < H; y += 3) box(g, 0, y, W, 1, "d");
+  for (let i = 0; i < 12; i++) {
+    put(g, Math.round(noise(i * 5.3) * W), 29 + Math.round(noise(i * 9.1) * 6), "E");
   }
 
-  // Fence line across the middle distance.
-  box(g, 0, 22, W, 1, "W");
-  box(g, 0, 24, W, 1, "W");
-  for (let x = 1; x < W; x += 9) stamp(g, FENCE_POST, x, 21);
+  // Fence line between pasture and field.
+  box(g, 0, 23, W, 1, "W");
+  box(g, 0, 25, W, 1, "W");
+  for (let x = 3; x < W; x += 10) stamp(g, FENCE_POST, x, 21);
 
-  stamp(g, SCARECROW, 6, 13);
-  stamp(g, BUSH, 14, 20);
-  stamp(g, BUSH, 44, 19);
-  stamp(g, BUSH, 53, 21);
-  stampFlipped(g, BUSH, 0, 22);
+  stamp(g, SCARECROW, 10, 15);
+  stampFlipped(g, BUSH, 1, 21);
+  stamp(g, BUSH, 14, 21);
+  stamp(g, BUSH, 62, 21);
+  stampFlipped(g, BUSH, 71, 22);
 
-  scatterTufts(g, 23, 1.4, 10);
+  scatterTufts(g, 25, 1.4, 8);
   return toRows(g);
 }
 
@@ -235,42 +243,41 @@ function buildFishingDock(): string[] {
   const g = makeGrid(W, H);
   paintBands(g, [
     ["1", 2],
-    ["2", 2],
+    ["2", 3],
     ["3", 3],
-    ["4", 2],
+    ["4", 3],
     ["5", 2],
     ["6", 2],
   ]);
 
-  stamp(g, SUN, 6, 9);
+  stamp(g, SUN, 14, 11);
 
-  // Far shore, then water in four depth bands.
-  ridge(g, (x) => 17 + Math.sin(x / 9 + 2) * 1.5, "U", 20);
-  box(g, 0, 19, W, 2, "b");
-  box(g, 0, 21, W, 3, "B");
-  box(g, 0, 24, W, 4, "N");
-  box(g, 0, 28, W, 6, "M");
+  // Far shore, then the lake in depth bands.
+  ridge(g, (x) => 19 + Math.sin(x / 11 + 2) * 1.2, "F", 22);
+  box(g, 0, 21, W, 2, "b");
+  box(g, 0, 23, W, 3, "B");
+  box(g, 0, 26, W, 3, "N");
 
-  // A few standing highlights so the water has texture before it animates.
-  for (let i = 0; i < 22; i++) {
+  // Standing highlights so the water has texture even before it animates.
+  for (let i = 0; i < 16; i++) {
     const x = Math.round(noise(i * 3.9) * W);
-    const y = 21 + Math.round(noise(i * 7.3) * 7);
-    put(g, x, y, "b");
-    put(g, x + 1, y, "b");
+    const y = 23 + Math.round(noise(i * 7.3) * 5);
+    box(g, x, y, 2, 1, "b");
   }
 
-  stamp(g, REED, 1, 22);
-  stamp(g, REED, 4, 24);
-  stampFlipped(g, REED, 59, 23);
-  stamp(g, LILY, 46, 25);
-  stamp(g, LILY, 52, 28);
-  stamp(g, LILY, 8, 27);
+  stamp(g, REED, 2, 23);
+  stamp(g, REED, 6, 25);
+  stampFlipped(g, REED, 75, 24);
+  stamp(g, LILY, 14, 26);
+  stamp(g, LILY, 64, 25);
+  stampFlipped(g, LILY, 70, 27);
 
-  // The deck the creature actually stands on.
-  box(g, 6, 29, 52, 3, "W");
-  box(g, 6, 29, 52, 1, "w");
-  for (let x = 6; x < 58; x += 5) box(g, x, 29, 1, 3, "V");
-  for (const x of [10, 22, 40, 52]) box(g, x, 32, 2, 2, "V");
+  // A broad deck fills the foreground, so the creature always has planks
+  // underfoot however the card crops.
+  box(g, 0, 29, W, 7, "W");
+  box(g, 0, 29, W, 1, "w");
+  box(g, 0, 30, W, 1, "V");
+  for (let x = 0; x < W; x += 7) box(g, x, 30, 1, 6, "V");
 
   return toRows(g);
 }
@@ -281,36 +288,42 @@ function buildWoodcutting(): string[] {
     ["2", 2],
     ["3", 3],
     ["4", 3],
-    ["5", 2],
+    ["5", 3],
     ["7", 2],
+    ["8", 2],
   ]);
 
-  // Distant treeline as a flat silhouette, then real pines in front of it.
-  ridge(g, (x) => 15 + Math.sin(x / 7) * 2 + Math.sin(x / 3) * 1, "X", 21);
-  for (let i = 0; i < 9; i++) {
-    const x = i * 7 + Math.round(noise(i * 4.1) * 3);
-    stamp(g, PINE.map((row) => row.replace(/[gGH]/g, "X")), x, 8);
+  // Distant treeline: small conifers stamped every four columns so they
+  // overlap into one mass, with a closing band underneath. A single serrated
+  // ridge instead reads as a comb, and full-size pines read as candelabras.
+  for (let x = -2; x < W + 2; x += 4) {
+    stamp(g, FAR_TREE, x, 15 + Math.round(noise(x * 1.3) * 2));
+  }
+  box(g, 0, 20, W, 2, "F");
+
+  box(g, 0, 21, W, 15, "H");
+  box(g, 0, 21, W, 1, "G");
+  box(g, 0, 28, W, 8, "J");
+  box(g, 0, 28, W, 1, "H");
+  // Speckle the clearing floor so it is not a flat slab behind the occupant.
+  for (let i = 0; i < 22; i++) {
+    put(g, Math.round(noise(i * 4.4) * W), 29 + Math.round(noise(i * 6.2) * 6), "H");
   }
 
-  box(g, 0, 21, W, 13, "H");
-  box(g, 0, 21, W, 1, "G");
-  box(g, 0, 26, W, 8, "J");
-  box(g, 0, 26, W, 1, "H");
+  stamp(g, PINE, 0, 8);
+  stamp(g, OAK, 10, 11);
+  stamp(g, PINE, 70, 7);
+  stamp(g, OAK, 60, 12);
 
-  stamp(g, PINE, 0, 7);
-  stamp(g, OAK, 8, 9);
-  stamp(g, PINE, 50, 6);
-  stamp(g, OAK, 53, 10);
+  stamp(g, STUMP, 13, 29);
+  stamp(g, AXE, 15, 24);
+  stamp(g, LOG, 62, 31);
+  stamp(g, LOG, 66, 28);
+  stamp(g, MUSHROOM, 5, 31);
+  stamp(g, MUSHROOM, 74, 30);
+  stamp(g, ROCK, 24, 25);
 
-  stamp(g, STUMP, 12, 27);
-  stamp(g, AXE, 14, 22);
-  stamp(g, LOG, 44, 29);
-  stamp(g, LOG, 47, 26);
-  stamp(g, MUSHROOM, 6, 29);
-  stamp(g, MUSHROOM, 58, 28);
-  stamp(g, ROCK, 36, 23);
-
-  scatterTufts(g, 24, 3.6, 12);
+  scatterTufts(g, 26, 3.6, 9);
   return toRows(g);
 }
 
@@ -318,55 +331,51 @@ function buildMining(): string[] {
   const g = makeGrid(W, H);
   box(g, 0, 0, W, H, "X");
 
-  // Back wall, lit from the lantern side, speckled so it reads as rough rock.
-  box(g, 0, 6, W, 22, "T");
-  box(g, 0, 6, W, 1, "S");
-  for (let i = 0; i < 110; i++) {
+  // Back wall, speckled so it reads as rough rock rather than flat fill.
+  box(g, 0, 8, W, 21, "T");
+  box(g, 0, 8, W, 1, "S");
+  for (let i = 0; i < 120; i++) {
     const x = Math.round(noise(i * 1.9) * W);
-    const y = 7 + Math.round(noise(i * 5.7) * 19);
+    const y = 9 + Math.round(noise(i * 5.7) * 18);
     put(g, x, y, noise(i * 3.3) > 0.55 ? "S" : "U");
   }
 
   // Ceiling with stalactites biting down into the chamber.
   for (let x = 0; x < W; x++) {
-    const depth = 4 + Math.abs(Math.sin(x / 5.5)) * 3 + noise(x) * 2;
-    box(g, x, 0, 1, Math.round(depth), "U");
+    box(g, x, 0, 1, Math.round(5 + Math.abs(Math.sin(x / 6)) * 3 + noise(x) * 2), "U");
   }
-  for (const [x, len] of [[7, 6], [19, 4], [33, 7], [45, 5], [57, 4]] as const) {
-    for (let k = 0; k < len; k++) {
-      const w = len - k > 2 ? 2 : 1;
-      box(g, x, 5 + k, w, 1, "U");
-    }
+  for (const [x, len] of [[9, 6], [23, 4], [41, 7], [57, 5], [71, 4]] as const) {
+    for (let k = 0; k < len; k++) box(g, x, 7 + k, len - k > 2 ? 2 : 1, 1, "U");
   }
 
-  // Ore seams glinting in the rock face.
-  for (let i = 0; i < 5; i++) {
+  // Ore seams in the rock face, away from where the creature stands.
+  for (let i = 0; i < 6; i++) {
     const x = Math.round(noise(i * 6.7) * (W - 4));
-    const y = 9 + Math.round(noise(i * 11.3) * 12);
-    if (x > 24 && x < 40) continue;
+    const y = 11 + Math.round(noise(i * 11.3) * 13);
+    if (x > CLEAR_FROM && x < CLEAR_TO) continue;
     stamp(g, ORE, x, y);
   }
 
   // Floor.
-  box(g, 0, 27, W, 7, "U");
-  box(g, 0, 27, W, 1, "S");
-  box(g, 0, 30, W, 4, "X");
-  for (let i = 0; i < 20; i++) {
-    put(g, Math.round(noise(i * 2.1) * W), 28 + Math.round(noise(i * 8.8) * 2), "T");
+  box(g, 0, 29, W, 7, "U");
+  box(g, 0, 29, W, 1, "S");
+  box(g, 0, 33, W, 3, "X");
+  for (let i = 0; i < 18; i++) {
+    put(g, Math.round(noise(i * 2.1) * W), 30 + Math.round(noise(i * 8.8) * 2), "T");
   }
 
   // Rails running off to the right, with the cart parked on them.
-  box(g, 30, 31, 34, 1, "s");
-  box(g, 30, 33, 34, 1, "s");
-  for (let x = 31; x < W; x += 4) box(g, x, 31, 1, 3, "S");
-  stamp(g, CART, 46, 25);
+  box(g, 52, 33, W - 52, 1, "s");
+  box(g, 52, 35, W - 52, 1, "s");
+  for (let x = 53; x < W; x += 5) box(g, x, 33, 1, 3, "S");
+  stamp(g, CART, 62, 27);
 
-  stamp(g, CRYSTAL, 4, 21);
-  stamp(g, CRYSTAL, 10, 23);
-  stamp(g, ROCK, 16, 23);
-  stampFlipped(g, CRYSTAL, 40, 22);
-  stamp(g, LANTERN, 2, 8);
-  box(g, 4, 2, 1, 6, "V");
+  stamp(g, CRYSTAL, 4, 24);
+  stamp(g, CRYSTAL, 12, 26);
+  stamp(g, ROCK, 20, 26);
+  stampFlipped(g, CRYSTAL, 52, 25);
+  stamp(g, LANTERN, 4, 11);
+  box(g, 6, 5, 1, 6, "V");
 
   return toRows(g);
 }
@@ -403,11 +412,16 @@ function Deco({ art, x, y, className, style, opacity }: DecoProps) {
 
 /** Horizontal glints that slide one pixel at a time across the water. */
 const SHIMMER = (() => {
-  const g = makeGrid(W, 12);
-  for (let i = 0; i < 30; i++) {
-    const x = Math.round(noise(i * 4.7) * W);
-    const y = Math.round(noise(i * 8.2) * 12);
-    box(g, x, y, 2 + Math.round(noise(i * 3.3) * 2), 1, "i");
+  const g = makeGrid(W, 8);
+  for (let i = 0; i < 26; i++) {
+    box(
+      g,
+      Math.round(noise(i * 4.7) * W),
+      Math.round(noise(i * 8.2) * 8),
+      2 + Math.round(noise(i * 3.3) * 2),
+      1,
+      "i"
+    );
   }
   return toRows(g);
 })();
@@ -417,12 +431,12 @@ function sceneDeco(slotType: string) {
     case "BERRY_FARM":
       return (
         <>
-          <Deco art={SCENE_CLOUD} x={0} y={10} className="px-cloud-s" opacity={0.5} />
-          <Deco art={BUTTERFLY} x={16} y={17} className="px-flutter" />
+          <Deco art={SCENE_CLOUD} x={0} y={13} className="px-cloud-s" opacity={0.4} />
+          <Deco art={BUTTERFLY} x={20} y={22} className="px-flutter" />
           <Deco
             art={BUTTERFLY}
-            x={42}
-            y={21}
+            x={56}
+            y={24}
             className="px-flutter"
             style={{ animationDelay: "-2.1s", animationDuration: "7s" }}
           />
@@ -432,17 +446,17 @@ function sceneDeco(slotType: string) {
     case "FISHING_DOCK":
       return (
         <>
-          <Deco art={SCENE_CLOUD} x={0} y={10} className="px-cloud-s" opacity={0.35} />
-          <g transform="translate(0 20)">
+          <Deco art={SCENE_CLOUD} x={0} y={13} className="px-cloud-s" opacity={0.3} />
+          <g transform="translate(0 22)">
             <g className="px-shimmer">
-              <PixelLayer rows={SHIMMER} palette={P} opacity={0.5} />
+              <PixelLayer rows={SHIMMER} palette={P} opacity={0.45} />
             </g>
           </g>
-          <Deco art={FISH} x={44} y={22} className="px-fish" />
+          <Deco art={FISH} x={58} y={24} className="px-fish" />
           <Deco
             art={FISH}
-            x={14}
-            y={24}
+            x={18}
+            y={26}
             className="px-fish"
             style={{ animationDelay: "-3.4s", animationDuration: "9s" }}
           />
@@ -453,9 +467,9 @@ function sceneDeco(slotType: string) {
       return (
         <>
           {[
-            { x: 12, y: 10, delay: "0s" },
-            { x: 54, y: 9, delay: "-2.6s" },
-            { x: 30, y: 11, delay: "-4.9s" },
+            { x: 14, y: 12, delay: "0s" },
+            { x: 66, y: 11, delay: "-2.6s" },
+            { x: 36, y: 13, delay: "-4.9s" },
           ].map((leaf, i) => (
             <Deco
               key={i}
@@ -467,9 +481,9 @@ function sceneDeco(slotType: string) {
             />
           ))}
           {[
-            { x: 8, y: 30, d: "0s" },
-            { x: 56, y: 29, d: "-3.1s" },
-            { x: 38, y: 31, d: "-5.5s" },
+            { x: 8, y: 32, d: "0s" },
+            { x: 70, y: 31, d: "-3.1s" },
+            { x: 46, y: 33, d: "-5.5s" },
           ].map((fly, i) => (
             <Deco
               key={`f${i}`}
@@ -490,21 +504,21 @@ function sceneDeco(slotType: string) {
     case "MINING":
       return (
         <>
-          <Deco art={CRYSTAL} x={4} y={21} className="px-glow" opacity={0.7} />
+          <Deco art={CRYSTAL} x={4} y={24} className="px-glow" opacity={0.7} />
           <Deco
             art={CRYSTAL}
-            x={10}
-            y={23}
+            x={12}
+            y={26}
             className="px-glow"
             style={{ animationDelay: "-0.8s" }}
             opacity={0.7}
           />
-          <Deco art={LANTERN} x={2} y={8} className="px-flicker" />
+          <Deco art={LANTERN} x={4} y={11} className="px-flicker" />
           {[
-            { x: 20, y: 12, d: "0s" },
-            { x: 44, y: 10, d: "-2.2s" },
-            { x: 60, y: 13, d: "-4.4s" },
-            { x: 32, y: 11, d: "-6.1s" },
+            { x: 24, y: 14, d: "0s" },
+            { x: 54, y: 12, d: "-2.2s" },
+            { x: 72, y: 15, d: "-4.4s" },
+            { x: 40, y: 13, d: "-6.1s" },
           ].map((mote, i) => (
             <Deco
               key={i}
@@ -536,6 +550,9 @@ export function SlotScene({ slotType }: { slotType: string }) {
       aria-hidden="true"
     >
       <PixelLayer rows={rows} palette={P} />
+      {/* One themed wash over the terrain: it shifts the whole pen to the time
+          of day and takes the edge off the contrast at the same time. */}
+      <rect x="0" y="0" width={W} height={H} fill="var(--sc-tint)" />
       {deco}
     </svg>
   );

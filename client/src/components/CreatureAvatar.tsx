@@ -45,7 +45,7 @@ const BODY = [
   "ABBmBBBBmBBA",
   "ABBBBkkBBBBA",
   "ABBBBBBBBBBA",
-  "AABBCCCCBBAA",
+  "AABBBCCBBBAA",
   ".ABBCCCCBBA.",
   ".AABCCCCBAA.",
   "..AABBBBAA..",
@@ -139,7 +139,7 @@ function ProceduralCreature({ speciesId, size }: { speciesId: string; size: numb
       palette: {
         A: `hsl(${hue} ${tone.sat}% ${Math.max(18, light - 20)}%)`,
         B: `hsl(${hue} ${tone.sat}% ${light}%)`,
-        C: `hsl(${(hue + 14) % 360} ${tone.sat + 10}% ${Math.min(92, light + 26)}%)`,
+        C: `hsl(${(hue + 14) % 360} ${tone.sat + 10}% ${Math.min(78, light + 14)}%)`,
         D: `hsl(${hue} ${tone.sat}% ${Math.max(14, light - 30)}%)`,
         X: `hsl(${accentHue} ${Math.min(72, tone.sat + 22)}% 46%)`,
         Y: `hsl(${accentHue} ${Math.min(80, tone.sat + 30)}% 68%)`,

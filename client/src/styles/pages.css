@@ -29,7 +29,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--c-white);
-  background: var(--c-plum);
+  background: var(--chrome-raised);
   animation: rise-in var(--dur-slow) var(--ease-pop) both;
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
@@ -150,7 +150,7 @@
   width: 64px;
   height: 64px;
   margin-bottom: var(--s1);
-  background: var(--c-plum);
+  background: var(--chrome-raised);
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 
@@ -182,7 +182,7 @@
   flex-wrap: wrap;
   padding: var(--s4);
   margin-bottom: var(--s6);
-  background: var(--surface-dark-raised);
+  background: var(--chrome-raised);
   color: var(--ink-on-dark);
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
@@ -391,7 +391,7 @@
   place-items: center;
   width: 56px;
   height: 56px;
-  background: var(--c-plum);
+  background: var(--chrome-raised);
   animation: pop-in var(--dur) var(--ease-pop);
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
