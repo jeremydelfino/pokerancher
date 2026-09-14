@@ -30,7 +30,8 @@ export const POKEMON_SPECIES: readonly PokemonSpecies[] = [
   { id: "steelix", name: "Steelix", dex: 208, rarity: "rare", role: "passive", trait: { slot: "MINING", multiplier: 1.5 } },
   { id: "regirock", name: "Regirock", dex: 377, rarity: "legendary", role: "passive", trait: { slot: "MINING", multiplier: 2.2 } },
   { id: "keldeo", name: "Keldeo", dex: 647, rarity: "legendary", role: "offensive" },
-  { id: "mawile", name: "Mysdibule", dex: 303, rarity: "legendary", role: "offensive" },
+  // Fights and mines: role and job are independent, so a species may hold both.
+  { id: "mawile", name: "Mysdibule", dex: 303, rarity: "legendary", role: "offensive", trait: { slot: "MINING", multiplier: 1.6 } },
 ];
 
 export const POKEMON_BY_ID = Object.fromEntries(POKEMON_SPECIES.map((p) => [p.id, p])) as Record<

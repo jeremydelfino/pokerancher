@@ -52,6 +52,8 @@ model RefugeSlot {
   slotType        String
   pokemonUnitId   String?  @unique
   lastCollectedAt DateTime @default(now())
+  /// Pen upgrade level bought with coins. 0 is the pen as built.
+  level           Int      @default(0)
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   pokemonUnit PokemonUnit? @relation(fields: [pokemonUnitId], references: [id], onDelete: SetNull)

@@ -1,14 +1,39 @@
-import { GACHA_EGG_COST, POKEMON_SPECIES, rollGachaSpecies, starTierForCount } from "@pokerancher/shared";
+import {
+  EGG_COIN_COST,
+  GACHA_EGG_COST,
+  POKEMON_SPECIES,
+  rollGachaSpecies,
+  starTierForCount,
+  type ResourceType,
+} from "@pokerancher/shared";
 import { prisma } from "../db.js";
 
-export async function rollEgg(userId: string) {
-  const currency = await prisma.inventoryItem.findUnique({
-    where: { userId_resource: { userId, resource: GACHA_EGG_COST.resource } },
+/**
+ * Two ways to pay for the same egg: shards, which only expeditions drop, and
+ * coins, which only the auction house pays out. Both are priced in data; this
+ * file just picks which row to debit.
+ */
+export type EggCurrency = "egg_shard" | "coin";
+
+export const EGG_PRICES: Record<EggCurrency, { resource: ResourceType; amount: number }> = {
+  egg_shard: GACHA_EGG_COST,
+  coin: { resource: "coin", amount: EGG_COIN_COST },
+};
+
+export function isEggCurrency(value: unknown): value is EggCurrency {
+  return value === "egg_shard" || value === "coin";
+}
+
+export async function rollEgg(userId: string, currency: EggCurrency = "egg_shard") {
+  const price = EGG_PRICES[currency];
+
+  const wallet = await prisma.inventoryItem.findUnique({
+    where: { userId_resource: { userId, resource: price.resource } },
   });
 
-  if (!currency || currency.quantity < GACHA_EGG_COST.amount) {
+  if (!wallet || wallet.quantity < price.amount) {
     throw new Error(
-      `Not enough ${GACHA_EGG_COST.resource} (need ${GACHA_EGG_COST.amount}, have ${currency?.quantity ?? 0})`
+      `Not enough ${price.resource} (need ${price.amount}, have ${wallet?.quantity ?? 0})`
     );
   }
 
@@ -16,8 +41,8 @@ export async function rollEgg(userId: string) {
 
   const [, unit] = await prisma.$transaction([
     prisma.inventoryItem.update({
-      where: { userId_resource: { userId, resource: GACHA_EGG_COST.resource } },
-      data: { quantity: { decrement: GACHA_EGG_COST.amount } },
+      where: { userId_resource: { userId, resource: price.resource } },
+      data: { quantity: { decrement: price.amount } },
     }),
     prisma.pokemonUnit.upsert({
       where: { userId_speciesId: { userId, speciesId: species.id } },
@@ -31,5 +56,6 @@ export async function rollEgg(userId: string) {
     quantity: unit.quantity,
     isNew: unit.quantity === 1,
     starTier: starTierForCount(unit.quantity),
+    paid: price,
   };
 }

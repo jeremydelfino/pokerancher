@@ -40,10 +40,18 @@ Deux fichiers.
   name: "Caninos",          // nom affiché
   dex: 58,                  // numéro du Pokédex national — sert au sprite
   rarity: "rare",           // common | rare | epic | legendary
-  role: "passive",          // passive = travaille au Refuge · offensive = combat
-  trait: { slot: "MINING", multiplier: 1.4 },  // uniquement si passive
+  role: "passive",          // profil de combat : passive encaisse, offensive frappe
+  trait: { slot: "MINING", multiplier: 1.4 },  // le métier — facultatif
 }
 ```
+
+⚠️ **`role` n'est pas une permission.** Une espèce travaille un enclos si elle a
+un `trait` (un métier), et se bat si tu l'emmènes en expédition — les deux sont
+indépendants, donc un Pokémon peut faire les deux. `role` ne décide que de la
+pondération de ses stats de combat. Mysdibule, dans le jeu de placeholder, est
+`offensive` **et** mineur : c'est l'exemple à copier. Une espèce sans `trait`
+(Keldeo) est un pur combattant, et une espèce `passive` avec un métier peut
+quand même partir en run — elle sera juste plus solide que tranchante.
 
 ⚠️ **Attention au mot « trait ».** Le champ `trait` au singulier existe depuis
 le début et désigne **le métier d'enclos** : quel enclos l'espèce peut occuper,
@@ -174,7 +182,9 @@ Un effet est volontairement un simple triplet :
 
 Les effets `slot_rate` et `resource_rate` se **composent** : un trait peut
 booster « la mine » et une relique booster « le minerai » sans qu'aucun des deux
-n'ait à connaître l'autre.
+n'ait à connaître l'autre. Les paliers d'enclos achetés au marché écrivent dans
+ce même vocabulaire (section 6) : le moteur ne fait aucune différence entre un
+bonus gagné et un bonus acheté.
 
 ### Inventer un nouveau type d'effet
 
@@ -213,7 +223,88 @@ ce qui pourrait l'être.
 
 ---
 
-## 6. Les reliques
+## 6. L'hôtel de vente et les améliorations d'enclos
+
+**`shared/src/data/market.ts`** contient toute l'économie marchande : les prix
+de vente, l'échelle d'améliorations, et le prix d'un œuf en pièces.
+
+### Les prix
+
+```ts
+{ resource: "ore", unitPrice: 5, grade: "epic", blurb: "Rare, lourd, et la forge en veut encore." },
+```
+
+Les prix sont **fixes**. Pas d'offre et de demande, pas de fluctuation : c'est
+un choix, pas un raccourci. Un prix fixe permet au joueur de calculer de tête
+« encore deux heures de mine et j'achète le palier suivant », et c'est tout
+l'intérêt du puits.
+
+Remarque que l'échelle des prix est l'**inverse** de celle des rendements des
+enclos : les baies sortent à 60/h et valent 1, le minerai sort à 20/h et vaut 5,
+donc une heure de n'importe quel enclos rapporte à peu près pareil. Casse cette
+symétrie exprès si tu veux qu'un enclos devienne la vraie mine d'or.
+
+`grade` ne sert qu'à l'affichage (la couleur de l'auvent de l'étal) et à
+justifier le prix. Aucune règle ne le lit.
+
+### La pièce
+
+La pièce (`coin`) n'est produite par **aucun** enclos et ne tombe d'**aucune**
+expédition. La seule entrée, c'est la vente ; les seules sorties, ce sont les
+améliorations d'enclos et les œufs. Garde cette boucle fermée et tu pourras
+toujours raisonner sur l'économie ; ajoute une troisième source et tu ne
+sauras plus d'où vient l'inflation.
+
+Pour rendre une ressource vendable, ajoute-la à `SELLABLE_RESOURCES`
+(`shared/src/types.ts`) **et** donne-lui une entrée dans `MARKET_LISTINGS`. Sans
+les deux, la vente est refusée — volontairement : une ressource à prix inconnu
+ne doit pas pouvoir se vendre à zéro.
+
+### Les paliers d'enclos
+
+```ts
+{
+  level: 2,
+  label: "Enclos agrandi",
+  cost: 500,                                  // pièces pour passer du niveau 1 au 2
+  effects: [
+    { type: "slot_rate", value: 1.35, mode: "mult" },
+    { type: "activity_score", value: 1 },
+  ],
+}
+```
+
+Les effets utilisent **exactement le même vocabulaire que les synergies** (voir
+la section 4) — ils tombent dans le même `EffectBag`, et ni la production ni les
+étoiles ne savent qu'un « achat » existe. C'est aussi pour ça qu'un palier
+augmente le score d'activité : les étoiles de l'enclos montent sans une ligne
+de moteur en plus.
+
+⚠️ **Pas de cible dans les données.** Tu n'écris jamais `target` ici : le moteur
+y colle le type d'enclos concerné au moment de résoudre. Un palier ne peut donc
+physiquement pas booster le mauvais enclos.
+
+⚠️ **Un palier remplace le précédent.** `SLOT_UPGRADES_REPLACE_PREVIOUS = true`
+applique la règle « highest » des synergies : atteindre le niveau 3 n'applique
+**pas** aussi les niveaux 1 et 2. Écris donc chaque palier comme la valeur
+absolue voulue à ce niveau, jamais comme un incrément. Passe la constante à
+`false` et l'échelle ci-dessus se met à compounder jusqu'à ×4,86.
+
+Aujourd'hui les quatre enclos partagent la même échelle. Pour en donner une par
+enclos, transforme `SLOT_UPGRADE_TIERS` en `Record<SlotType, SlotUpgradeTier[]>`
+et adapte `slotUpgradeLadder()` — c'est la seule fonction qui touche cette
+constante.
+
+### Les œufs en pièces
+
+`EGG_COIN_COST` fixe le prix d'un œuf payé en pièces ; le prix en éclats reste
+dans `GACHA_EGG_COST` (`shared/src/game-logic.ts`). Deux monnaies, un seul œuf :
+les éclats ne viennent que des expéditions, les pièces que du marché, donc les
+deux boucles nourrissent le gacha sans se remplacer.
+
+---
+
+## 7. Les reliques
 
 **`shared/src/data/relics.ts`** :
 
@@ -239,7 +330,7 @@ disant la même chose. Aucun cas particulier nulle part.
 
 ---
 
-## 7. Les récompenses
+## 8. Les récompenses
 
 **`shared/src/data/rewards.ts`** :
 
@@ -264,7 +355,7 @@ inverser dans `rollRewardChoice` (`shared/src/run/engine.ts`).
 
 ---
 
-## 8. Les événements
+## 9. Les événements
 
 **`shared/src/data/events.ts`** :
 
@@ -287,7 +378,7 @@ moteur les applique par le même chemin : `grantLoot`, `grantRelic`,
 
 ---
 
-## 9. Les ennemis
+## 10. Les ennemis
 
 **`shared/src/data/enemies.ts`** :
 
@@ -301,7 +392,7 @@ par la profondeur défini dans `run-config.ts`.
 
 ---
 
-## 10. La forme d'une expédition
+## 11. La forme d'une expédition
 
 **`shared/src/data/run-config.ts`** — les leviers les plus structurants :
 
@@ -331,7 +422,7 @@ n'a plus aucune raison d'exister. C'est le réglage à ne pas rater.
 
 ---
 
-## 11. Le contrat anti-triche
+## 12. Le contrat anti-triche
 
 À respecter en ajoutant des mécaniques, sinon la protection tombe.
 
@@ -348,19 +439,26 @@ Donc, concrètement :
 - ❌ jamais de `Math.random()` dans `shared/src/run/`
 - ❌ jamais de `Date.now()` dans une résolution de nœud
 - ❌ jamais de route qui accepte un résultat depuis le client
+- ✅ le marché suit la même règle : le client envoie « quoi » et « combien »,
+  jamais un prix ni un total. `sellQuote()` est rejoué côté serveur contre le
+  stock que la base affirme, et le débit est conditionnel (`quantity >= …`)
+  pour que deux ventes simultanées ne puissent pas créer de pièces.
 
 Le client peut exécuter les mêmes fonctions pour afficher en avance ; ça ne
 change rien, puisque ce qui compte est recalculé côté serveur.
 
 ---
 
-## 12. La boucle
+## 13. La boucle
 
 ```
 REFUGE ──▶ production ──▶ ressources ──▶ œufs ──▶ nouvelles espèces
-   ▲                                                      │
-   │                                                      ▼
-   └────── butin ◀── EXPÉDITION ◀── nouvelles compositions ┘
+   ▲                          │                           │
+   │                          ▼                           │
+   │                    HÔTEL DE VENTE ──▶ pièces ──┬──────┤
+   │                                                │      │
+   │                          paliers d'enclos ◀────┘      ▼
+   └────── butin ◀── EXPÉDITION ◀── nouvelles compositions ─┘
 ```
 
 Les deux moitiés partagent les mêmes données : un Pokémon obtenu en expédition
@@ -371,18 +469,21 @@ un moment de collection et pas un moment de comptabilité.
 
 ---
 
-## 13. Vérifier que tu n'as rien cassé
+## 14. Vérifier que tu n'as rien cassé
 
 ```bash
-npm run test --workspace shared   # 56 tests : moteur de traits, synergies, run
+npm run test --workspace shared   # 68 tests : traits, synergies, run, marché
 npm run typecheck                 # les trois paquets
 npm run build --workspace shared  # à relancer après toute modif de données
 ```
 
-⚠️ Le client et le serveur consomment `shared` **compilé**. Après une
-modification dans `shared/src/data/`, relance `npm run build --workspace shared`
-ou garde `npm run dev --workspace shared` en watch, sinon tes changements ne
-remonteront pas.
+⚠️ Le client et le serveur consomment `shared` **compilé**. Les scripts
+`npm run dev:server`, `npm run dev:client` et `npm test` recompilent `shared`
+tout seuls (hooks `pre*` dans le `package.json` racine), mais si tu lances un
+workspace directement, relance `npm run build --workspace shared` ou garde
+`npm run dev --workspace shared` en watch — sinon tes changements ne
+remonteront pas, et tu récolteras une erreur du genre
+`does not provide an export named …`.
 
 Les tests couvrent en particulier les pièges décrits plus haut : le cumul des
 paliers, le comptage par espèce, le déterminisme de la carte et du combat, et le

@@ -176,11 +176,17 @@
 
 /* Segmented control: one sunken track, the active tab raised inside it.
    Reads as a single switch rather than two competing buttons. */
+/* Five tabs no longer fit a phone, so the strip scrolls in place rather than
+   pushing the page sideways. `min-width: 0` is what actually lets it shrink
+   inside the flex row — without it the strip stays at its content width. */
 .tabs {
   display: flex;
   gap: 3px;
   padding: 3px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: var(--chrome-sunken);
   box-shadow:
     0 calc(-1 * var(--px)) 0 0 var(--ink),
@@ -189,8 +195,13 @@
     var(--px) 0 0 0 var(--ink);
 }
 
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .tab {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   padding: var(--s2) var(--s4);
@@ -1054,6 +1065,15 @@
 @media (max-width: 520px) {
   .brand-name {
     display: none;
+  }
+  /* On a phone five tabs would either scroll (hiding the last one behind an
+     invisible edge) or squeeze to unreadable. Two rows is neither. */
+  .tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .tab {
+    flex: 1 1 30%;
   }
   .sheet-list {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

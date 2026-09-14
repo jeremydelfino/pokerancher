@@ -5,7 +5,7 @@ import { PixelIcon, type Palette } from "./pixel.js";
 import { ResourcePill } from "./ResourcePill.js";
 import { SettingsDialog } from "./SettingsDialog.js";
 
-const RESOURCE_ORDER = ["berry", "fish", "wood", "ore", "egg_shard"];
+const RESOURCE_ORDER = ["coin", "berry", "fish", "wood", "ore", "egg_shard"];
 
 const MARK: Palette = {
   G: "#3c6b4a",
@@ -59,6 +59,9 @@ export function TopBar({ inventory }: { inventory?: Record<string, number> }) {
             </NavLink>
             <NavLink to="/explore" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
               Explorer
+            </NavLink>
+            <NavLink to="/market" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
+              Marché
             </NavLink>
             <NavLink to="/gacha" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
               Œufs

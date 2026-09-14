@@ -1,8 +1,11 @@
 import type {
   ActivityStars,
+  MarketListing,
   PokemonSpecies,
   RunMap,
   RunState,
+  SlotUpgradeState,
+  SlotUpgradeTier,
   StarTierInfo,
   SynergyState,
 } from "@pokerancher/shared";
@@ -52,8 +55,20 @@ export const api = {
 
   pokemon: () => request<OwnedPokemon[]>("/pokemon"),
 
-  gachaInfo: () => request<{ eggCost: { resource: string; amount: number } }>("/gacha"),
-  gachaRoll: () => request<GachaResult>("/gacha/roll", { method: "POST" }),
+  gachaInfo: () =>
+    request<{ eggCost: EggPrice; prices: Record<EggCurrency, EggPrice> }>("/gacha"),
+  gachaRoll: (currency: EggCurrency = "egg_shard") =>
+    request<GachaResult>("/gacha/roll", { method: "POST", body: JSON.stringify({ currency }) }),
+
+  market: () => request<MarketState>("/market"),
+  sell: (resource: string, quantity: number) =>
+    request<SellResponse>("/market/sell", {
+      method: "POST",
+      body: JSON.stringify({ resource, quantity }),
+    }),
+  sellAll: () => request<SellResponse>("/market/sell-all", { method: "POST" }),
+  upgradeSlot: (slotType: string) =>
+    request<UpgradeResponse>(`/market/upgrade/${slotType}`, { method: "POST" }),
 
   runState: () => request<RunEnvelope>("/run"),
   runStart: (unitIds: string[]) =>
@@ -112,9 +127,10 @@ export interface RefugeSlotState {
   resource: string;
   assigned: { pokemonUnitId: string; speciesId: string; quantity: number } | null;
   pendingAmount: number;
-  /** Combined bonus from active synergies. 1 means no synergy is helping. */
+  /** Combined bonus from active synergies and bought upgrades. 1 means nothing is helping. */
   synergyMultiplier: number;
   stars: ActivityStars;
+  upgrade: SlotUpgradeState;
 }
 
 export interface RefugeState {
@@ -137,4 +153,49 @@ export interface GachaResult {
   quantity: number;
   isNew: boolean;
   starTier: { stars: number; nextThreshold: number | null; statMultiplier: number };
+}
+
+export type EggCurrency = "egg_shard" | "coin";
+export interface EggPrice {
+  resource: string;
+  amount: number;
+}
+
+export interface MarketStall extends MarketListing {
+  owned: number;
+  totalIfSoldAll: number;
+}
+
+export interface MarketUpgrade extends SlotUpgradeState {
+  label: string;
+  ladder: SlotUpgradeTier[];
+}
+
+export interface MarketState {
+  coins: number;
+  stalls: MarketStall[];
+  upgrades: MarketUpgrade[];
+  eggCoinCost: number;
+  inventory: Record<string, number>;
+}
+
+export interface SellQuote {
+  resource: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface SellResponse {
+  sold: SellQuote[];
+  earned: number;
+  market: MarketState;
+}
+
+export interface UpgradeResponse {
+  slotType: string;
+  level: number;
+  spent: number;
+  market: MarketState;
+  refuge: RefugeState;
 }

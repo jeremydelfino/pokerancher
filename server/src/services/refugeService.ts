@@ -6,6 +6,9 @@ import {
   refugeRateMultiplier,
   SLOTS,
   SLOTS_BY_TYPE,
+  slotUpgradeCost,
+  slotUpgradeEffects,
+  slotUpgradeState,
   type RefugeOccupant,
   type SlotType,
 } from "@pokerancher/shared";
@@ -26,7 +29,13 @@ async function loadComposition(userId: string) {
     .filter((slot) => slot.pokemonUnit)
     .map((slot) => ({ slotType: slot.slotType as SlotType, speciesId: slot.pokemonUnit!.speciesId }));
 
-  return { slots, composition: refugeComposition(occupants) };
+  // Bought upgrades enter through the same door as synergies: they are just
+  // effects in the bag, so nothing downstream has to know they exist.
+  const upgrades = slots.flatMap((slot) =>
+    slotUpgradeEffects(slot.slotType as SlotType, slot.level)
+  );
+
+  return { slots, composition: refugeComposition(occupants, upgrades) };
 }
 
 function multiplierFor(
@@ -116,6 +125,7 @@ export async function getRefugeState(userId: string) {
   ]);
 
   const slotsByType = new Map(slots.map((s) => [s.slotType, s]));
+  const coins = inventory.find((item) => item.resource === "coin")?.quantity ?? 0;
 
   return {
     slots: SLOTS.map((def) => {
@@ -142,10 +152,57 @@ export async function getRefugeState(userId: string) {
         pendingAmount: pending?.amount ?? 0,
         synergyMultiplier,
         stars: refugeActivityStars(composition.effects, def.type, Boolean(unit)),
+        upgrade: slotUpgradeState(def.type, slot?.level ?? 0, coins),
       };
     }),
     synergies: composition.synergies,
     units: units.map((u) => ({ id: u.id, speciesId: u.speciesId, quantity: u.quantity })),
     inventory: Object.fromEntries(inventory.map((i) => [i.resource, i.quantity])),
   };
+}
+
+/**
+ * Buys the next upgrade tier for a pen.
+ *
+ * Production is cashed out first, at the level the Pokemon actually worked
+ * under — the same rule as reassigning. Upgrading is otherwise a pure
+ * transaction: coins out, level in, and the effect bag picks the rest up on the
+ * next read.
+ */
+export async function upgradeSlot(userId: string, slotType: SlotType) {
+  await creditProduction(userId, slotType);
+
+  const [slot, wallet] = await Promise.all([
+    prisma.refugeSlot.findUnique({ where: { userId_slotType: { userId, slotType } } }),
+    prisma.inventoryItem.findUnique({ where: { userId_resource: { userId, resource: "coin" } } }),
+  ]);
+
+  const level = slot?.level ?? 0;
+  const coins = wallet?.quantity ?? 0;
+  const cost = slotUpgradeCost(slotType, level, coins);
+
+  await prisma.$transaction(async (tx) => {
+    // Conditional debit, and the level is pinned to the one we priced: a second
+    // request racing this one finds either the coins or the level moved, and
+    // fails instead of buying two tiers for the price of one.
+    const paid = await tx.inventoryItem.updateMany({
+      where: { userId, resource: "coin", quantity: { gte: cost } },
+      data: { quantity: { decrement: cost } },
+    });
+    if (paid.count === 0) throw new Error("Pièces insuffisantes");
+
+    if (slot) {
+      const bumped = await tx.refugeSlot.updateMany({
+        where: { id: slot.id, level },
+        data: { level: level + 1 },
+      });
+      if (bumped.count === 0) throw new Error("Cet enclos vient d'être amélioré");
+    } else {
+      await tx.refugeSlot.create({
+        data: { userId, slotType, level: level + 1, lastCollectedAt: new Date() },
+      });
+    }
+  });
+
+  return { slotType, level: level + 1, spent: cost };
 }

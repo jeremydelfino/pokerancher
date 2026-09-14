@@ -6,6 +6,7 @@ import { Codex } from "./pages/Codex.js";
 import { Explore } from "./pages/Explore.js";
 import { Gacha } from "./pages/Gacha.js";
 import { Landing } from "./pages/Landing.js";
+import { Market } from "./pages/Market.js";
 import { Refuge } from "./pages/Refuge.js";
 import { useAuth } from "./state/AuthContext.js";
 
@@ -54,6 +55,14 @@ export function App() {
           element={
             <RequireAuth>
               <Explore />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/market"
+          element={
+            <RequireAuth>
+              <Market />
             </RequireAuth>
           }
         />

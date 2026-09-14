@@ -431,3 +431,272 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }
+
+/* ============================================================================
+   L'hôtel de vente : étals, bourse et améliorations d'enclos.
+   ========================================================================== */
+
+/* A bigger version of the wallet chip, for headline amounts. */
+.res-dot-lg {
+  width: 26px;
+  height: 26px;
+}
+
+.coin-purse {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
+  background: var(--chrome-raised);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    0 var(--px2) 0 0 rgba(18, 14, 28, 0.42);
+}
+
+.coin-purse .res-dot-lg {
+  align-self: center;
+}
+
+.coin-amount {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-gold);
+  text-shadow: 0 2px 0 rgba(18, 14, 28, 0.55);
+}
+
+.coin-label {
+  font-size: var(--read-sm);
+  color: var(--ink-on-dark-soft);
+}
+
+/* --- Stalls --------------------------------------------------------------- */
+
+.stall-grid,
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+}
+
+.stall,
+.upgrade {
+  display: grid;
+  align-content: start;
+  gap: var(--s3);
+  padding: var(--s4);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    inset 0 var(--px) 0 0 rgba(255, 255, 255, 0.7),
+    /* The rarity of the goods is the stall's awning. */
+    0 var(--px2) 0 0 var(--rarity, var(--c-stone-deep));
+}
+
+/* An empty stall is still readable — it just stops advertising. */
+.stall-empty {
+  opacity: 0.6;
+}
+
+.stall-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.stall-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+
+/* Dark chip, gold figure: the coin glyph is drawn in near-white, so it needs a
+   dark ground to read — on a gold badge it disappeared into the background. */
+.stall-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  color: var(--c-gold);
+  background: var(--chrome-raised);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* Reserved height so every stall's slider and button land on the same line,
+   however long the blurb runs. */
+.stall-blurb {
+  margin: 0;
+  min-height: calc(var(--read-sm) * 4.8);
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.stall-stock {
+  margin: 0;
+  min-height: calc(var(--read-base) * 3.2);
+  font-size: var(--read-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.stall-controls {
+  display: grid;
+  gap: var(--s2);
+  margin-top: auto;
+}
+
+/* A chunky pixel slider rather than the OS one, so the page keeps one voice. */
+.stall-range {
+  width: 100%;
+  height: 14px;
+  appearance: none;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  cursor: pointer;
+}
+
+.stall-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--c-gold);
+  box-shadow: 0 0 0 2px var(--ink);
+  cursor: grab;
+}
+
+.stall-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 0;
+  background: var(--c-gold);
+  box-shadow: 0 0 0 2px var(--ink);
+  cursor: grab;
+}
+
+.stall-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.stall-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* --- Pen upgrades --------------------------------------------------------- */
+
+.upgrade-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.upgrade-level {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.upgrade-pips {
+  display: flex;
+  gap: var(--px);
+}
+
+.upgrade-pip {
+  flex: 1 1 0;
+  height: 8px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px rgba(26, 20, 40, 0.3);
+  transition: background var(--dur-slow) var(--ease-out);
+}
+
+.upgrade-pip-on {
+  background: var(--c-gold);
+}
+
+.upgrade-current {
+  margin: 0;
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.upgrade-next {
+  display: grid;
+  gap: var(--px);
+  padding: var(--s3);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px rgba(26, 20, 40, 0.16);
+}
+
+.upgrade-next strong {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+
+.upgrade-next span {
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.upgrade-maxed {
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    inset 0 0 0 2px var(--c-gold),
+    0 var(--px2) 0 0 var(--c-gold);
+}
+
+/* A maxed pen gets a badge, not gold text on cream — that combination was
+   almost invisible against the card. */
+.upgrade-done {
+  justify-self: start;
+  margin: 0;
+  padding: 2px var(--s3);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-gold);
+  background: var(--chrome-raised);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* Copy that sits directly on the sky rather than inside a panel needs the
+   polarity-flipping token, or it goes dark-on-dark at night. */
+.market-note {
+  max-width: 68ch;
+  margin: calc(-1 * var(--s2)) 0 var(--s4);
+  font-size: var(--read-base);
+  color: var(--on-sky-soft);
+}
+
+@media (max-width: 520px) {
+  .stall-grid,
+  .upgrade-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.currency-switch {
+  display: flex;
+  gap: var(--s2);
+}
+
+.currency-switch .btn {
+  flex: 1 1 0;
+  gap: var(--s2);
+}

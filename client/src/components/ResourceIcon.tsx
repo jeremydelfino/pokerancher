@@ -6,6 +6,7 @@ export const RESOURCE_LABEL: Record<string, string> = {
   wood: "Bois",
   ore: "Minerai",
   egg_shard: "Éclats",
+  coin: "Pièces",
 };
 
 export function resourceLabel(resource: string): string {
@@ -81,12 +82,24 @@ const DOT = [
   "........",
 ];
 
+const COIN = [
+  "..iiii..",
+  ".i....i.",
+  "i..ii..i",
+  "i.i..i.i",
+  "i.i..i.i",
+  "i..ii..i",
+  ".i....i.",
+  "..iiii..",
+];
+
 const ICONS: Record<string, string[]> = {
   berry: BERRY,
   fish: FISH,
   wood: WOOD,
   ore: ORE,
   egg_shard: SHARD,
+  coin: COIN,
 };
 
 export function ResourceIcon({ resource, size = 12 }: { resource: string; size?: number }) {

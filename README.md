@@ -150,10 +150,20 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Clique **"Récolter"** pour les collecter
 
 ### Gacha
-- Clique **"Ouvrir un œuf"** (coûte 50 `egg_shard`)
+- Clique **"Ouvrir un œuf"** (50 `egg_shard`, ou 400 pièces — le sélecteur est dans le panneau)
 - Les doublons fusionnent et augmentent les stats (paliers ⭐)
 
+### Marché (hôtel de vente)
+- Vends tes récoltes à **prix fixe** : baies 1, poissons 2, bois 3, minerai 5 pièces l'unité
+- Les pièces servent à **améliorer les enclos** (4 paliers, jusqu'à ×2 de production)
+  et à acheter des œufs
+- Un palier **remplace** le précédent : le niveau 3 n'est pas le niveau 2 plus un bonus
+
 ### Traits & synergies
+- Un Pokémon peut être **à la fois** travailleur et combattant : le métier (quel enclos
+  il occupe) et le profil de combat sont deux choses indépendantes
+- Les traits ne comptent que là où tu **choisis** les Pokémon : les enclos du Refuge et
+  l'équipe de départ d'une expédition (1 à 6 membres)
 - Chaque Pokémon porte des **traits** ; réunir assez de porteurs allume un **palier**
 - Les paliers actifs multiplient la production des enclos et notent leur efficacité en étoiles
 - Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
@@ -178,7 +188,7 @@ npm run db:migrate   # Depuis le dossier racine
 # Vérifier les types TypeScript
 npm run typecheck    # Sur tous les packages
 
-# Lancer les tests
+# Lancer les tests (recompile shared automatiquement)
 npm run test         # Tests unitaires du package shared
 ```
 
@@ -199,8 +209,10 @@ Copy-Item .env server/.env
 2. **Reset Secret** et copie le nouveau
 3. Redémarre le serveur avec `npm run dev:server`
 
-### Erreur : `Cannot find package '@pokerancher/shared'`
-→ Le package shared n'a pas été compilé
+### Erreur : `Cannot find package '@pokerancher/shared'` ou `does not provide an export named …`
+→ Le package shared n'a pas été recompilé après une modification. Les scripts
+`dev:server`, `dev:client` et `test` le font désormais tout seuls, mais si tu
+lances un workspace directement :
 ```powershell
 npm run build --workspace shared
 ```
@@ -223,6 +235,7 @@ pokerancher/
 ├── shared/                  # Logique pure + types (testés)
 │   └── src/
 │       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
+│       ├── market.ts        # Ventes et paliers d'enclos (règles)
 │       ├── pokemon-data.ts  # Espèces, slots, rareté
 │       ├── types.ts         # Interfaces TypeScript
 │       ├── traits/          # Moteur de traits, effets, synergies, étoiles
@@ -231,7 +244,7 @@ pokerancher/
 │
 ├── server/                  # Backend Node + Express + Prisma
 │   ├── src/
-│   │   ├── routes/          # API endpoints (auth, refuge, gacha)
+│   │   ├── routes/          # API endpoints (auth, refuge, gacha, market, run, codex)
 │   │   ├── services/        # Logique métier
 │   │   └── auth/            # Discord OAuth2 + JWT
 │   └── prisma/
@@ -240,7 +253,7 @@ pokerancher/
 │
 ├── client/                  # Frontend React + Vite
 │   ├── src/
-│   │   ├── pages/           # Landing, Refuge, Gacha
+│   │   ├── pages/           # Landing, Refuge, Explore, Market, Gacha, Codex
 │   │   ├── state/           # AuthContext
 │   │   └── api/             # Appels au serveur
 │   └── vite.config.ts
@@ -318,6 +331,7 @@ VITE_SPRITE_BASE_URL="http://localhost:8099"
 - [x] Traits, synergies à seuils, étoiles d'activité
 - [x] Donjons procéduraux (roguelite) + reliques + risque/récompense
 - [x] Collection / Codex
+- [x] Hôtel de vente + améliorations d'enclos payantes
 - [ ] Compositions sauvegardées (builds nommés)
 - [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels

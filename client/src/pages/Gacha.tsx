@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, type GachaResult } from "../api/client.js";
+import { api, type EggCurrency, type EggPrice, type GachaResult } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
 import { CreatureAvatar, RARITY_AURA } from "../components/CreatureAvatar.js";
 import { Egg } from "../components/Egg.js";
@@ -29,7 +29,8 @@ export function Gacha() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<GachaResult | null>(null);
   const [history, setHistory] = useState<GachaResult[]>([]);
-  const [eggCost, setEggCost] = useState<{ resource: string; amount: number } | null>(null);
+  const [prices, setPrices] = useState<Record<EggCurrency, EggPrice> | null>(null);
+  const [currency, setCurrency] = useState<EggCurrency>("egg_shard");
   const [inventory, setInventory] = useState<Record<string, number> | null>(null);
   const alive = useRef(true);
   const toast = useToast();
@@ -44,7 +45,7 @@ export function Gacha() {
   const refresh = useCallback(async () => {
     const [info, refuge] = await Promise.all([api.gachaInfo(), api.refugeState()]);
     if (!alive.current) return;
-    setEggCost(info.eggCost);
+    setPrices(info.prices);
     setInventory(refuge.inventory);
   }, []);
 
@@ -52,6 +53,7 @@ export function Gacha() {
     refresh().catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
   }, [refresh, toast]);
 
+  const eggCost = prices?.[currency] ?? null;
   const balance = eggCost ? inventory?.[eggCost.resource] ?? 0 : 0;
   const affordable = eggCost !== null && balance >= eggCost.amount;
   const busy = phase === "shaking" || phase === "bursting";
@@ -63,7 +65,7 @@ export function Gacha() {
 
     const startedAt = Date.now();
     try {
-      const rolled = await api.gachaRoll();
+      const rolled = await api.gachaRoll(currency);
       await sleep(Math.max(0, SHAKE_MS - (Date.now() - startedAt)));
       if (!alive.current) return;
 
@@ -178,6 +180,24 @@ export function Gacha() {
           </div>
 
           <div className="gacha-panel card">
+            {/* Two currencies, one egg: shards come back from expeditions, coins
+                from the auction house. The player picks which pocket to empty. */}
+            {prices && (
+              <div className="currency-switch" role="group" aria-label="Moyen de paiement">
+                {(Object.keys(prices) as EggCurrency[]).map((option) => (
+                  <button
+                    key={option}
+                    className={`btn btn-sm ${currency === option ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setCurrency(option)}
+                    aria-pressed={currency === option}
+                  >
+                    <ResourceIcon resource={prices[option].resource} />
+                    {prices[option].amount}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {eggCost && (
               <p className="gacha-cost">
                 <span className="res-dot" style={{ ["--res-color" as string]: `var(--res-${eggCost.resource})` }}>

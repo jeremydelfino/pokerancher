@@ -221,6 +221,9 @@
   place-items: center;
   width: min(400px, 100%);
   aspect-ratio: 1;
+  /* The ray burst is deliberately wider than the stage; clip it here so it
+     never widens the page on a phone. */
+  overflow: hidden;
 }
 
 /* A stepped pool of light so the egg is set down, not floating. */

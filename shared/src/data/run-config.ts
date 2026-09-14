@@ -7,8 +7,8 @@ import type { RunNodeType } from "../run/types.js";
  * here; those live in enemies.ts and combat.ts.
  */
 export const RUN_CONFIG = {
-  /** How many Pokémon the player may take. */
-  teamSize: 5,
+  /** How many Pokémon the player may take. At least one, at most this. */
+  teamSize: 6,
 
   /** Rows between the entry and the boss, boss excluded. */
   rows: 8,

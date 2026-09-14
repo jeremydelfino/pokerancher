@@ -69,8 +69,10 @@ export interface ProductionResult {
 export function computeProduction(input: ProductionInput): ProductionResult {
   const species = POKEMON_BY_ID[input.speciesId];
   if (!species) throw new Error(`Unknown species: ${input.speciesId}`);
-  if (species.role !== "passive" || !species.trait) {
-    throw new Error(`${species.name} has no passive trait and cannot be assigned to the Refuge`);
+  // Role is a combat profile, not a permission: what decides whether a species
+  // can work a pen is whether it has a job at all.
+  if (!species.trait) {
+    throw new Error(`${species.name} n'a pas de métier et ne peut pas travailler au Refuge`);
   }
   if (species.trait.slot !== input.slotType) {
     throw new Error(`${species.name} cannot be assigned to slot ${input.slotType}`);
