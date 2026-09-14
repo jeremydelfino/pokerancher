@@ -63,12 +63,16 @@ export function resolveSynergy(traitId: string, count: number): SynergyState {
   const activeTiers = thresholds.filter((tier) => count >= tier.count);
   const next = thresholds.find((tier) => tier.count > count) ?? null;
 
+  const stacking = SYNERGIES[traitId]?.stacking ?? "highest";
+  const currentTier = activeTiers[activeTiers.length - 1] ?? null;
+
   return {
     traitId,
     definition: TRAIT_DEFINITIONS[traitId],
     count,
     activeTiers,
-    currentTier: activeTiers[activeTiers.length - 1] ?? null,
+    effectiveTiers: stacking === "cumulative" ? activeTiers : currentTier ? [currentTier] : [],
+    currentTier,
     tierIndex: activeTiers.length,
     tierCount: thresholds.length,
     nextThreshold: next?.count ?? null,
@@ -88,7 +92,7 @@ export function resolveSynergies(team: readonly TraitCarrier[]): SynergyState[] 
 }
 
 export function synergyEffects(states: readonly SynergyState[]): TraitEffect[] {
-  return states.flatMap((state) => state.activeTiers.flatMap((tier) => tier.effects));
+  return states.flatMap((state) => state.effectiveTiers.flatMap((tier) => tier.effects));
 }
 
 /**

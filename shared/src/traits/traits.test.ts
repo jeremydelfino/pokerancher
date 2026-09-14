@@ -61,6 +61,25 @@ describe("resolveSynergy", () => {
     expect(state.toNext).toBeNull();
   });
 
+  it("applies only the highest tier by default, TFT style", () => {
+    const state = resolveSynergy("fertilisation", 4);
+    expect(state.activeTiers).toHaveLength(3);
+    expect(state.effectiveTiers).toHaveLength(1);
+    expect(state.effectiveTiers[0]).toBe(state.currentTier);
+  });
+
+  it("does not multiply the whole ladder together", () => {
+    // The trap this guards: with cumulative stacking and absolute values, three
+    // tiers of 1.15 / 1.35 / 1.7 would compound to x2.64 instead of x1.7.
+    const bag = teamEffectBag([
+      { speciesId: "bulbasaur" },
+      { speciesId: "snivy" },
+      { speciesId: "sunkern" },
+      { speciesId: "torterra" },
+    ]);
+    expect(bag.multiplier("slot_rate", "BERRY_FARM")).toBeCloseTo(1.7);
+  });
+
   it("sorts strongest first so the panel reads top-down", () => {
     const states = resolveSynergies([
       { speciesId: "bulbasaur" },

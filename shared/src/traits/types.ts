@@ -65,9 +65,22 @@ export interface SynergyThreshold {
  */
 export type SynergyCountMode = "unique-species" | "per-member";
 
+/**
+ * Whether reaching tier 3 also keeps tiers 1 and 2 running.
+ *
+ * "highest" is the TFT rule and the default: only the top tier reached applies,
+ * so its effects are written as absolute values (tier 3 IS x1.35, not x1.35 on
+ * top of tier 2). "cumulative" keeps every met tier, which means effects have
+ * to be written as increments. Getting this backwards silently multiplies your
+ * whole ladder together, so it is declared per trait rather than assumed.
+ */
+export type SynergyStacking = "highest" | "cumulative";
+
 export interface SynergyDefinition {
   traitId: string;
   countMode?: SynergyCountMode;
+  /** Defaults to "highest". */
+  stacking?: SynergyStacking;
   /** Must be sorted ascending by count; the engine sorts defensively anyway. */
   thresholds: SynergyThreshold[];
 }
@@ -78,8 +91,10 @@ export interface SynergyState {
   definition: TraitDefinition | undefined;
   /** Holders counted under the trait's countMode. */
   count: number;
-  /** Every threshold currently met, lowest first. */
+  /** Every threshold currently met, lowest first. Use this to draw stars. */
   activeTiers: SynergyThreshold[];
+  /** The tiers whose effects actually apply, per the trait's stacking rule. */
+  effectiveTiers: SynergyThreshold[];
   /** The highest met threshold, or null when none is. */
   currentTier: SynergyThreshold | null;
   /** 0 when nothing is active, otherwise the 1-based tier number. */

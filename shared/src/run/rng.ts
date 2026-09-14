@@ -30,7 +30,10 @@ export function subSeed(seed: number, ...parts: number[]): number {
 }
 
 export function randomSeed(): number {
-  return Math.floor(Math.random() * 0xffffffff) >>> 0;
+  // Kept inside signed 32-bit range: the seed round-trips through a Postgres
+  // Int column, and an unsigned overflow there would come back as a different
+  // number and regenerate a different map.
+  return Math.floor(Math.random() * 0x7fffffff);
 }
 
 export function pick<T>(items: readonly T[], rng: () => number): T {

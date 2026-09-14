@@ -17,6 +17,7 @@ model User {
   inventory    InventoryItem[]
   pokemonUnits PokemonUnit[]
   refugeSlots  RefugeSlot[]
+  runs         Run[]
 }
 
 /// Frugal duplicate-tracking: one row per (user, resource), quantity incremented in place.
@@ -56,4 +57,20 @@ model RefugeSlot {
   pokemonUnit PokemonUnit? @relation(fields: [pokemonUnitId], references: [id], onDelete: SetNull)
 
   @@unique([userId, slotType])
+}
+
+/// One roguelite expedition. The whole thing is a seed plus the path taken, so
+/// a run costs one row and the server can regenerate any node to check a claim.
+model Run {
+  id        String    @id @default(uuid())
+  userId    String
+  status    String    @default("active")
+  /// Serialised RunState from @pokerancher/shared.
+  state     Json
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
