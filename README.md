@@ -153,6 +153,17 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Clique **"Ouvrir un œuf"** (coûte 50 `egg_shard`)
 - Les doublons fusionnent et augmentent les stats (paliers ⭐)
 
+### Traits & synergies
+- Chaque Pokémon porte des **traits** ; réunir assez de porteurs allume un **palier**
+- Les paliers actifs multiplient la production des enclos et notent leur efficacité en étoiles
+- Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
+
+### Exploration (roguelite)
+- Compose une équipe, choisis ton chemin sur une carte à embranchements
+- Combats, événements, échoppes, reliques temporaires
+- Aux points de décision : **rentrer** avec tout, **sécuriser** une partie, ou **continuer**
+- Mourir fait perdre le butin non sécurisé ; les œufs gagnés éclosent au retour
+
 ---
 
 ## 🛠️ Commandes utiles
@@ -213,7 +224,10 @@ pokerancher/
 │   └── src/
 │       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
 │       ├── pokemon-data.ts  # Espèces, slots, rareté
-│       └── types.ts         # Interfaces TypeScript
+│       ├── types.ts         # Interfaces TypeScript
+│       ├── traits/          # Moteur de traits, effets, synergies, étoiles
+│       ├── run/             # RNG seedé, carte, combat, machine à états
+│       └── data/            # ⚙️ TOUT LE GAME DESIGN — voir GAME-DESIGN.md
 │
 ├── server/                  # Backend Node + Express + Prisma
 │   ├── src/
@@ -236,6 +250,19 @@ pokerancher/
 ```
 
 ---
+
+## 🎛️ Ajouter du contenu (Pokémon, traits, synergies…)
+
+Tout l'équilibrage vit dans `shared/src/data/` et le moteur n'a pas besoin d'être
+touché pour ajouter quoi que ce soit.
+
+**👉 [Guide de game design complet](GAME-DESIGN.md)** — ajouter un Pokémon, un
+trait, une synergie, une relique, un événement, une récompense, un ennemi ; le
+vocabulaire des effets ; les deux règles de cumul à ne pas rater ; et le contrat
+anti-triche à respecter.
+
+⚠️ Après toute modification dans `shared/`, relance `npm run build --workspace shared` —
+le client et le serveur consomment la version compilée.
 
 ## 🎨 Les sprites des créatures
 
@@ -288,8 +315,11 @@ VITE_SPRITE_BASE_URL="http://localhost:8099"
 
 ## 🎯 Prochaines étapes (roadmap)
 
-- [ ] Donjons procéduraux (roguelite)
-- [ ] Combats PvE hardcore (boss patterns)
+- [x] Traits, synergies à seuils, étoiles d'activité
+- [x] Donjons procéduraux (roguelite) + reliques + risque/récompense
+- [x] Collection / Codex
+- [ ] Compositions sauvegardées (builds nommés)
+- [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels
 - [ ] Déploiement zero-cost (Vercel + Railway + Supabase)
 

@@ -5,6 +5,7 @@ import { AssignSheet } from "../components/AssignSheet.js";
 import { CreatureAvatar } from "../components/CreatureAvatar.js";
 import { ResourcePill } from "../components/ResourcePill.js";
 import { SlotCard } from "../components/SlotCard.js";
+import { SynergyPanel } from "../components/SynergyPanel.js";
 import { resourceLabel } from "../components/ResourceIcon.js";
 import { TopBar } from "../components/TopBar.js";
 import { useToast } from "../components/Toast.js";
@@ -140,6 +141,8 @@ export function Refuge() {
                 Tout récolter
               </button>
             </div>
+
+            <SynergyPanel synergies={state.synergies} />
 
             <div className="slot-grid stagger">
               {state.slots.map((slot) => (

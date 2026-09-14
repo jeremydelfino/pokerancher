@@ -57,8 +57,14 @@ export function TopBar({ inventory }: { inventory?: Record<string, number> }) {
             <NavLink to="/refuge" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
               Refuge
             </NavLink>
+            <NavLink to="/explore" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
+              Explorer
+            </NavLink>
             <NavLink to="/gacha" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
               Œufs
+            </NavLink>
+            <NavLink to="/codex" className={({ isActive }) => `tab ${isActive ? "tab-active" : ""}`}>
+              Codex
             </NavLink>
           </nav>
 

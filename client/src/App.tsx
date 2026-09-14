@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Ambience } from "./components/Ambience.js";
 import { CreatureAvatar } from "./components/CreatureAvatar.js";
+import { Codex } from "./pages/Codex.js";
+import { Explore } from "./pages/Explore.js";
 import { Gacha } from "./pages/Gacha.js";
 import { Landing } from "./pages/Landing.js";
 import { Refuge } from "./pages/Refuge.js";
@@ -44,6 +46,22 @@ export function App() {
           element={
             <RequireAuth>
               <Gacha />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/explore"
+          element={
+            <RequireAuth>
+              <Explore />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/codex"
+          element={
+            <RequireAuth>
+              <Codex />
             </RequireAuth>
           }
         />

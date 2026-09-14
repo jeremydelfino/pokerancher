@@ -1,0 +1,433 @@
+/* ============================================================================
+   Traits, synergies, expeditions and the codex.
+   ========================================================================== */
+
+/* --- Trait chips ---------------------------------------------------------- */
+
+.trait-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--px);
+}
+
+.trait-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  background: var(--surface-sunken);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.trait-chip-muted {
+  opacity: 0.5;
+}
+
+/* --- Synergy panel -------------------------------------------------------- */
+
+.synergy-panel {
+  margin-bottom: var(--s5);
+}
+
+.synergy-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--s3);
+}
+
+.synergy {
+  display: grid;
+  gap: var(--px);
+  padding: var(--s3);
+  background: var(--chrome-raised);
+  color: var(--ink-on-dark);
+  opacity: 0.7;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink);
+}
+
+/* A lit trait is the thing the player is chasing — it earns the gold edge. */
+.synergy-lit {
+  opacity: 1;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    inset 0 0 0 2px var(--c-gold);
+}
+
+.synergy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.synergy-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--c-white);
+}
+
+.synergy-track {
+  display: block;
+  height: 10px;
+  background: var(--chrome-sunken);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(18, 14, 28, 0.6);
+}
+
+.synergy-fill {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: var(--c-gold);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.synergy-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  font-size: var(--read-sm);
+}
+
+.synergy-count {
+  flex: none;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--c-white);
+}
+
+.synergy-next {
+  text-align: right;
+  color: var(--ink-on-dark-soft);
+}
+
+.synergy-max {
+  color: var(--c-gold);
+}
+
+.synergy-empty {
+  font-size: var(--read-base);
+  color: var(--on-sky-soft);
+}
+
+.synergy-callout {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  font-size: var(--read-base);
+  color: var(--ink);
+  background: var(--c-gold);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink);
+}
+
+.synergy-badge {
+  padding: 1px var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-white);
+  background: var(--c-magenta);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.slot-rating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+/* --- Explore -------------------------------------------------------------- */
+
+.explore-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--s5);
+  align-items: start;
+}
+
+.explore-aside {
+  display: grid;
+  gap: var(--s3);
+}
+
+.explore-aside .synergy-panel {
+  margin-bottom: 0;
+}
+
+.explore-aside .synergy-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+/* --- Run map -------------------------------------------------------------- */
+
+.run-map {
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+
+.run-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--s2);
+}
+
+.run-node {
+  flex: 1 1 0;
+  max-width: 150px;
+  padding: var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-on-dark-soft);
+  background: var(--chrome-sunken);
+  cursor: not-allowed;
+  box-shadow: 0 0 0 2px var(--ink);
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast);
+}
+
+/* Only the reachable nodes look pressable; everything else is scenery. */
+.run-node-open {
+  color: var(--ink);
+  background: var(--c-gold);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--ink), 0 var(--px) 0 0 rgba(18, 14, 28, 0.45);
+}
+
+.run-node-open:hover {
+  transform: translateY(-2px);
+}
+
+.run-node-done {
+  color: var(--c-white);
+  background: var(--c-grass-dk);
+}
+
+.run-node-boss {
+  color: var(--c-white);
+  background: var(--c-danger);
+}
+
+.run-node-boss.run-node-open {
+  color: var(--ink);
+  background: var(--c-gold);
+}
+
+/* --- Choices -------------------------------------------------------------- */
+
+.choice-prompt {
+  margin-bottom: var(--s4);
+  font-size: var(--read-base);
+  color: var(--ink-soft);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--s3);
+}
+
+.choice-card {
+  display: grid;
+  gap: var(--px);
+  padding: var(--s4);
+  text-align: left;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-pop);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    0 var(--px2) 0 0 rgba(18, 14, 28, 0.35);
+}
+
+.choice-card:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+
+.choice-card strong {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+
+.choice-card span {
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.combat-log {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+  box-shadow: inset 0 2px 0 0 rgba(26, 20, 40, 0.14);
+}
+
+/* --- Run status ----------------------------------------------------------- */
+
+.run-hp {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.run-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.run-member {
+  display: grid;
+  justify-items: center;
+  padding: var(--px);
+  background: var(--chrome-raised);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.run-member-down {
+  opacity: 0.35;
+}
+
+.run-member-hp {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-white);
+}
+
+.relic-list {
+  display: grid;
+  gap: 2px;
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.loot-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  font-size: var(--read-sm);
+  color: var(--ink);
+}
+
+.loot-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--px);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-outcome {
+  display: grid;
+  gap: var(--s3);
+  justify-items: start;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.hatch-line {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--c-magenta);
+}
+
+/* --- Codex ---------------------------------------------------------------- */
+
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--s4);
+}
+
+.codex-entry {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--px);
+  padding: var(--s4) var(--s3) var(--s3);
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--ink),
+    0 var(--px) 0 0 var(--ink),
+    calc(-1 * var(--px)) 0 0 0 var(--ink),
+    var(--px) 0 0 0 var(--ink),
+    0 var(--px2) 0 0 var(--rarity, var(--c-stone-deep));
+}
+
+/* Unowned entries keep their traits legible — that is the hook to go find
+   them — but lose their colour so the collection still reads at a glance. */
+.codex-locked {
+  filter: grayscale(0.85);
+  opacity: 0.72;
+}
+
+.codex-dex {
+  position: absolute;
+  top: var(--px);
+  left: var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.codex-name {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+
+.codex-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 900px) {
+  .explore-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .explore-aside .synergy-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .run-node {
+    font-size: 9px;
+    padding: var(--px);
+  }
+  .codex-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}

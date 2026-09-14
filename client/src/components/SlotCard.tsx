@@ -5,6 +5,8 @@ import { CreatureAvatar } from "./CreatureAvatar.js";
 import { ResourceIcon, resourceLabel } from "./ResourceIcon.js";
 import { SLOT_ACCENT, SlotScene } from "./SlotScene.js";
 import { Stars } from "./Stars.js";
+import { TraitChips } from "./TraitChip.js";
+import { resolveTraits } from "@pokerancher/shared";
 
 const HOUR_MS = 3_600_000;
 
@@ -90,12 +92,20 @@ export function SlotCard({ slot, fetchedAt, starsFor, busy, gain, onClaim, onOpe
           <span className="res-name">{resourceLabel(slot.resource)}</span>
         </div>
 
+        <div className="slot-rating">
+          <Stars count={slot.stars.stars} total={slot.stars.maxStars} label={`${slot.stars.stars} étoiles`} />
+          {slot.synergyMultiplier > 1 && (
+            <span className="synergy-badge">×{slot.synergyMultiplier.toFixed(2)} synergie</span>
+          )}
+        </div>
+
         {assigned ? (
           <>
             <div className="slot-occupant">
               <strong>{species?.name ?? assigned.speciesId}</strong>
               <Stars count={starsFor(assigned.pokemonUnitId)} />
             </div>
+            <TraitChips traits={resolveTraits(assigned.speciesId)} />
 
             <div className="slot-pending">
               <span className="row">

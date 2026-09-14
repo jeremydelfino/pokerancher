@@ -1,3 +1,12 @@
+import type {
+  ActivityStars,
+  PokemonSpecies,
+  RunMap,
+  RunState,
+  StarTierInfo,
+  SynergyState,
+} from "@pokerancher/shared";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 export class ApiError extends Error {
@@ -45,7 +54,57 @@ export const api = {
 
   gachaInfo: () => request<{ eggCost: { resource: string; amount: number } }>("/gacha"),
   gachaRoll: () => request<GachaResult>("/gacha/roll", { method: "POST" }),
+
+  runState: () => request<RunEnvelope>("/run"),
+  runStart: (unitIds: string[]) =>
+    request<RunAction>("/run/start", { method: "POST", body: JSON.stringify({ unitIds }) }),
+  runEnter: (nodeId: string) =>
+    request<RunAction>("/run/enter", { method: "POST", body: JSON.stringify({ nodeId }) }),
+  runChoose: (optionId: string) =>
+    request<RunAction>("/run/choose", { method: "POST", body: JSON.stringify({ optionId }) }),
+  runAbandon: () => request<RunAction>("/run/abandon", { method: "POST" }),
+
+  codex: () => request<CodexResponse>("/codex"),
 };
+
+export interface RunView {
+  id: string;
+  state: RunState;
+  map: RunMap;
+  available: string[];
+}
+
+/** What the server credited when a run ended: resources, plus any eggs hatched. */
+export interface RunAward {
+  resources: Record<string, number>;
+  hatched: GachaResult[];
+}
+
+export interface RunAction {
+  run: RunView;
+  awarded: RunAward | null;
+}
+
+export interface RunEnvelope {
+  config: { teamSize: number; rows: number };
+  run: RunView | null;
+  history: { id: string; status: string; depth: number; endedAt: string | null; message: string }[];
+}
+
+export interface CodexEntry {
+  species: PokemonSpecies;
+  traits: string[];
+  owned: boolean;
+  unitId: string | null;
+  quantity: number;
+  starTier: StarTierInfo;
+}
+
+export interface CodexResponse {
+  entries: CodexEntry[];
+  ownedCount: number;
+  total: number;
+}
 
 export interface RefugeSlotState {
   type: string;
@@ -53,10 +112,14 @@ export interface RefugeSlotState {
   resource: string;
   assigned: { pokemonUnitId: string; speciesId: string; quantity: number } | null;
   pendingAmount: number;
+  /** Combined bonus from active synergies. 1 means no synergy is helping. */
+  synergyMultiplier: number;
+  stars: ActivityStars;
 }
 
 export interface RefugeState {
   slots: RefugeSlotState[];
+  synergies: SynergyState[];
   units: { id: string; speciesId: string; quantity: number }[];
   inventory: Record<string, number>;
 }
