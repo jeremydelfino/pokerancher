@@ -762,7 +762,7 @@
   left: 50%;
   top: 50%;
   z-index: 71;
-  width: min(480px, calc(100% - var(--s6)));
+  width: min(600px, calc(100% - var(--s6)));
   max-height: 86vh;
   overflow-y: auto;
   transform: translate(-50%, -50%);
@@ -797,7 +797,7 @@
 
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s3);
 }
 
@@ -855,6 +855,18 @@
     #c49aa8 60% 74%,
     #f6c98d 74% 89%,
     #ffe9b8 89% 100%
+  );
+}
+
+.theme-preview-day {
+  background: linear-gradient(
+    to bottom,
+    #2f8fd0 0 18%,
+    #5fb6e6 18% 42%,
+    #9bd7f2 42% 60%,
+    #d5ecdf 60% 74%,
+    #f8f0a0 74% 89%,
+    #ffe27e 89% 100%
   );
 }
 
@@ -960,7 +972,7 @@
   gap: var(--s3);
   padding: var(--s6) var(--s4);
   text-align: center;
-  color: var(--ink-on-dark-soft);
+  color: var(--on-sky-soft);
 }
 
 .empty p {
@@ -1048,5 +1060,8 @@
   }
   .theme-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .theme-preview {
+    height: 40px;
   }
 }

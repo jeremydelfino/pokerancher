@@ -137,25 +137,25 @@ ul {
 
 .page-title {
   font-size: var(--text-3xl);
-  color: var(--c-white);
-  text-shadow: var(--px) var(--px) 0 var(--ink), 0 0 24px rgba(197, 107, 214, 0.45);
+  color: var(--on-sky);
+  text-shadow: var(--px) var(--px) 0 var(--on-sky-edge), 0 0 24px var(--on-sky-glow);
   display: flex;
   align-items: center;
   gap: var(--s3);
 }
 
 .page-subtitle {
-  color: var(--ink-on-dark-soft);
+  color: var(--on-sky-soft);
   font-size: var(--read-sm);
   margin-top: var(--s2);
-  text-shadow: 2px 2px 0 rgba(18, 14, 28, 0.8);
+  text-shadow: 2px 2px 0 var(--on-sky-edge-2);
 }
 
 .section-title {
   font-size: var(--text-xl);
-  color: var(--c-white);
+  color: var(--on-sky);
   margin-bottom: var(--s4);
-  text-shadow: 2px 2px 0 var(--ink);
+  text-shadow: 2px 2px 0 var(--on-sky-edge);
 }
 
 /* --- CRT overlay: scanlines + vignette, the whole lo-fi trick ------------- */

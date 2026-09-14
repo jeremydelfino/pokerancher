@@ -6,18 +6,20 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
  * HUD doesn't change colour when the sun comes up.
  */
 
-export type Theme = "night" | "dawn";
+export type Theme = "night" | "dawn" | "day";
 
-export const THEMES: readonly Theme[] = ["night", "dawn"];
+export const THEMES: readonly Theme[] = ["night", "dawn", "day"];
 
 export const THEME_LABEL: Record<Theme, string> = {
   night: "Nuit",
   dawn: "Lever du soleil",
+  day: "Plein soleil",
 };
 
 export const THEME_HINT: Record<Theme, string> = {
   night: "Ciel violet, lucioles et étoiles",
   dawn: "Bleu froid en haut, or à l'horizon",
+  day: "Bleu clair, prairies vertes et rayons",
 };
 
 const STORAGE_KEY = "pokerancher:theme";
@@ -30,7 +32,7 @@ interface ThemeValue {
 const ThemeContext = createContext<ThemeValue | null>(null);
 
 function isTheme(value: unknown): value is Theme {
-  return value === "night" || value === "dawn";
+  return THEMES.includes(value as Theme);
 }
 
 function readStoredTheme(): Theme {

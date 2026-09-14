@@ -41,24 +41,24 @@
 .hero-title {
   font-size: var(--text-hero);
   line-height: 1.05;
-  color: var(--c-white);
+  color: var(--on-sky);
   letter-spacing: 0.01em;
-  text-shadow: var(--px) var(--px) 0 var(--ink), var(--px2) var(--px2) 0 rgba(18, 14, 28, 0.4);
+  text-shadow: var(--px) var(--px) 0 var(--on-sky-edge), var(--px2) var(--px2) 0 var(--on-sky-edge-2);
   animation: rise-in var(--dur-slow) var(--ease-pop) 80ms both;
 }
 
 .hero-title em {
   display: block;
   font-style: normal;
-  color: var(--c-gold);
-  text-shadow: var(--px) var(--px) 0 var(--ink), var(--px2) var(--px2) 0 rgba(18, 14, 28, 0.4);
+  color: var(--title-accent);
+  text-shadow: var(--px) var(--px) 0 var(--on-sky-edge), var(--px2) var(--px2) 0 var(--on-sky-edge-2);
 }
 
 .hero-tagline {
   max-width: 36rem;
   font-size: var(--read-lg);
-  color: var(--ink-on-dark);
-  text-shadow: 2px 2px 0 rgba(18, 14, 28, 0.9);
+  color: var(--on-sky);
+  text-shadow: 2px 2px 0 var(--on-sky-edge);
   animation: rise-in var(--dur-slow) var(--ease-pop) 160ms both;
 }
 
@@ -83,7 +83,7 @@
   background: linear-gradient(
     90deg,
     transparent 0 8%,
-    var(--c-gold) 8% 92%,
+    var(--title-accent) 8% 92%,
     transparent 92% 100%
   );
   opacity: 0.7;
@@ -108,8 +108,9 @@
   font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-peach);
-  text-shadow: 2px 2px 0 rgba(18, 14, 28, 0.9);
+  color: var(--on-sky-soft);
+  /* No drop shadow: at 11px the offset edge swamps the glyph strokes, and the
+     colour alone already clears contrast in every theme. */
   animation: fade-in var(--dur-slow) var(--ease-out) 420ms both;
 }
 
@@ -169,8 +170,8 @@
   padding: var(--s5);
   text-align: center;
   font-size: var(--read-sm);
-  color: var(--ink-on-dark-soft);
-  text-shadow: 2px 2px 0 rgba(18, 14, 28, 0.8);
+  color: var(--on-sky-soft);
+  text-shadow: 2px 2px 0 var(--on-sky-edge-2);
 }
 
 /* --- Refuge --------------------------------------------------------------- */

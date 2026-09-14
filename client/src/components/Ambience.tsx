@@ -2,8 +2,12 @@ import { useMemo } from "react";
 import { PixelIcon, PixelLayer, makeGrid, noise, ridge, stamp, toRows, type Palette } from "./pixel.js";
 
 /**
- * The animated backdrop: a banded dusk sky, drifting pixel clouds, a moon,
- * layered hill silhouettes with tree lines, and fireflies over the meadow.
+ * The animated backdrop: a banded sky, sun rays, drifting pixel clouds, a
+ * celestial body, layered hill silhouettes with tree lines, and fireflies over
+ * the meadow. Every colour is a themed variable, and the pieces that only suit
+ * one hour (stars, fireflies, rays) fade out via their own opacity token
+ * rather than being conditionally rendered.
+ *
  * Purely decorative — it never reacts to input.
  */
 
@@ -133,6 +137,13 @@ export function Ambience({ variant = "soft" }: { variant?: "full" | "soft" }) {
   return (
     <div className="ambience" aria-hidden="true">
       <div className="ambience-sky" />
+
+      {/* Sits right after the sky so document order keeps it above the sky and
+          below everything else — no z-index, which would escape to the wrong
+          stacking context. */}
+      <div className="ray-anchor">
+        <div className="sun-rays" />
+      </div>
 
       <div className="ambience-stars">
         {stars.map((star, i) => (

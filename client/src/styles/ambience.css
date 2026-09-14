@@ -14,6 +14,13 @@
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+
+  /* The celestial body and its rays are two separate elements; keeping the
+     position in one place stops them drifting apart. Far enough from the
+     corner that the burst reads as radial rather than as a single streak. */
+  --sun-top: 13%;
+  --sun-right: 20%;
+  --sun-half: 36px;
 }
 
 .ambience-sky {
@@ -49,9 +56,43 @@
 
 .ambience-moon {
   position: absolute;
-  top: 9%;
-  right: 12%;
+  top: var(--sun-top);
+  right: var(--sun-right);
   animation: px-bob-slow 5s steps(1, end) infinite;
+}
+
+/* Sun rays, centred on the celestial body. Two nested elements on purpose:
+   the anchor carries the position, the inner element carries the rotation —
+   the spin animation sets `transform`, so it would wipe out any centring
+   translate put on the same node. Invisible at night (--ray-opacity is 0). */
+.ray-anchor {
+  position: absolute;
+  top: calc(var(--sun-top) + var(--sun-half));
+  right: calc(var(--sun-right) + var(--sun-half));
+  width: 0;
+  height: 0;
+}
+
+.sun-rays {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 150vmax;
+  height: 150vmax;
+  margin-left: -75vmax;
+  margin-top: -75vmax;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 5deg,
+    var(--ray-tint) 5deg 12deg,
+    transparent 12deg 18deg
+  );
+  mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.7) 40%, transparent 78%);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.7) 40%, transparent 78%);
+  opacity: var(--ray-opacity, 0);
+  animation: rays-spin 140s steps(90, end) infinite;
+  will-change: transform;
+  pointer-events: none;
 }
 
 .ambience-stars {
@@ -103,6 +144,8 @@
 .firefly-field {
   position: absolute;
   inset: 55% 0 0 0;
+  opacity: var(--firefly-opacity, 1);
+  transition: opacity var(--dur-slow) var(--ease-out);
 }
 
 .firefly {

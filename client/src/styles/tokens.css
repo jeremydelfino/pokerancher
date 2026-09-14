@@ -5,10 +5,14 @@
      1. --c-*   raw palette. Fixed, never themed. The UI chrome (cream panels,
                 ink outlines, button colours) is built from these so the HUD
                 looks the same whatever time of day it is.
-     2. --sky-*, --hill-*, --sc-*, --chrome-*
-                the world. These DO switch with the theme, because the sky,
-                the hills and the pen dioramas are what the player reads as
-                "night" or "sunrise".
+     2. --sky-*, --hill-*, --sc-*, --chrome-*, --on-sky-*
+                the world, plus any text that sits directly on it. These DO
+                switch with the theme.
+
+   --on-sky-* matters more than it looks: over a night sky the page headings
+   are near-white with a dark edge, but over a bright noon sky that same pair
+   is unreadable, so the polarity has to flip with the theme rather than being
+   hardcoded.
 
    Themes are selected with data-theme on <html>; night is the default.
    ========================================================================== */
@@ -131,12 +135,11 @@
 }
 
 /* ============================================================================
-   Theme: NIGHT (default)
+   Theme: NIGHT (default) — violet sky, fireflies, stars.
    ========================================================================== */
 
 :root,
 :root[data-theme="night"] {
-  /* Page sky, top to horizon */
   --sky-1: #120e1c;
   --sky-2: #1a1626;
   --sky-3: #241d35;
@@ -153,6 +156,9 @@
   --cloud: #fdf3df;
   --cloud-shade: #d8c2d8;
   --star-opacity: 1;
+  --firefly-opacity: 1;
+  --ray-opacity: 0;
+  --ray-tint: rgba(255, 236, 190, 0.5);
 
   --hill-far: #463a66;
   --hill-mid: #2f4a46;
@@ -167,6 +173,14 @@
   --veil-bottom: rgba(18, 14, 28, 0.72);
   --crt-alpha: rgba(18, 14, 28, 0.22);
   --crt-vignette: rgba(18, 14, 28, 0.55);
+
+  /* Text sitting directly on the backdrop */
+  --on-sky: #fffdf5;
+  --on-sky-soft: #c3b9dd;
+  --on-sky-edge: #1a1428;
+  --on-sky-edge-2: rgba(18, 14, 28, 0.4);
+  --on-sky-glow: rgba(197, 107, 214, 0.45);
+  --title-accent: #ffd479;
 
   /* Dark UI chrome: top bar, sheets, summary strip */
   --chrome: #241d35;
@@ -194,7 +208,7 @@
 }
 
 /* ============================================================================
-   Theme: DAWN — cool blue overhead, gold on the horizon, everything brighter.
+   Theme: DAWN — cool blue overhead, gold on the horizon.
    ========================================================================== */
 
 :root[data-theme="dawn"] {
@@ -214,6 +228,9 @@
   --cloud: #fff1dc;
   --cloud-shade: #d3b9c4;
   --star-opacity: 0.25;
+  --firefly-opacity: 0.55;
+  --ray-opacity: 0.22;
+  --ray-tint: rgba(255, 226, 170, 0.55);
 
   --hill-far: #7d8fb5;
   --hill-mid: #5b8a74;
@@ -228,6 +245,13 @@
   --veil-bottom: rgba(24, 32, 58, 0.58);
   --crt-alpha: rgba(24, 32, 58, 0.15);
   --crt-vignette: rgba(24, 32, 58, 0.42);
+
+  --on-sky: #fffdf5;
+  --on-sky-soft: #d7e3f2;
+  --on-sky-edge: #1a1428;
+  --on-sky-edge-2: rgba(18, 14, 28, 0.4);
+  --on-sky-glow: rgba(255, 201, 141, 0.4);
+  --title-accent: #ffd479;
 
   --chrome: #2a3a5e;
   --chrome-raised: #3d5280;
@@ -246,4 +270,72 @@
 
   --sc-far: #61789c;
   --sc-tint: rgba(255, 214, 150, 0.14);
+}
+
+/* ============================================================================
+   Theme: DAY — bright noon. Light blue overhead, green meadows, yellow on the
+   horizon, and visible sun rays. Headings flip to dark ink with a white edge,
+   because near-white text would vanish against this sky.
+   ========================================================================== */
+
+:root[data-theme="day"] {
+  --sky-1: #2f8fd0;
+  --sky-2: #45a3dd;
+  --sky-3: #5fb6e6;
+  --sky-4: #7cc8ee;
+  --sky-5: #9bd7f2;
+  --sky-6: #badff0;
+  --sky-7: #d5ecdf;
+  --sky-8: #e9f4bd;
+  --sky-9: #f8f0a0;
+  --sky-10: #ffe27e;
+
+  --celestial: #fffce8;
+  --celestial-mark: #ffe27e;
+  --cloud: #ffffff;
+  --cloud-shade: #cfe6f2;
+  --star-opacity: 0;
+  --firefly-opacity: 0;
+  --ray-opacity: 0.55;
+  --ray-tint: rgba(255, 238, 130, 0.92);
+
+  --hill-far: #8fc9a0;
+  --hill-mid: #63ab72;
+  --hill-tree-a: #4a945a;
+  --hill-tree-b: #3a7c49;
+  --hill-near: #3a7c49;
+  --hill-deep: #2c663b;
+
+  /* A whisper of warm white instead of a darkening veil. */
+  --veil-top: rgba(255, 252, 232, 0.12);
+  --veil-mid: rgba(255, 252, 232, 0);
+  --veil-low: rgba(255, 252, 232, 0.08);
+  --veil-bottom: rgba(255, 252, 232, 0.2);
+  --crt-alpha: rgba(28, 74, 58, 0.1);
+  --crt-vignette: rgba(28, 74, 58, 0.24);
+
+  --on-sky: #143d2c;
+  --on-sky-soft: #1c4c37;
+  --on-sky-edge: rgba(255, 255, 255, 0.92);
+  --on-sky-edge-2: rgba(255, 255, 255, 0.5);
+  --on-sky-glow: rgba(255, 255, 255, 0.55);
+  --title-accent: #d4701a;
+
+  --chrome: #2b6b4f;
+  --chrome-raised: #3a8a66;
+  --chrome-sunken: #1d4e39;
+  --chrome-hover: #4aa77c;
+
+  --sc-1: #3f9ad4;
+  --sc-2: #5fb0e0;
+  --sc-3: #7fc4ea;
+  --sc-4: #a0d6ef;
+  --sc-5: #c4e7ea;
+  --sc-6: #ddf0cd;
+  --sc-7: #f2f3a8;
+  --sc-8: #ffe27e;
+  --sc-sun: #fffce8;
+
+  --sc-far: #8fb8cf;
+  --sc-tint: rgba(255, 246, 190, 0.1);
 }
