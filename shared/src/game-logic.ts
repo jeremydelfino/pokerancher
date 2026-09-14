@@ -47,6 +47,12 @@ export interface ProductionInput {
   elapsedMs: number;
   /** Duplicate count owned for this species, used for the star-tier stat bonus. */
   duplicateCount: number;
+  /**
+   * Combined multiplier from active Refuge synergies. Defaults to 1 so every
+   * existing caller — and every saved game — keeps its old numbers until the
+   * composition is actually passed in.
+   */
+  synergyMultiplier?: number;
 }
 
 export interface ProductionResult {
@@ -75,7 +81,10 @@ export function computeProduction(input: ProductionInput): ProductionResult {
   const hours = cappedElapsedMs / (60 * 60 * 1000);
   const { statMultiplier } = starTierForCount(input.duplicateCount);
 
-  const amount = Math.floor(slot.baseRatePerHour * species.trait.multiplier * statMultiplier * hours);
+  const synergy = input.synergyMultiplier ?? 1;
+  const amount = Math.floor(
+    slot.baseRatePerHour * species.trait.multiplier * statMultiplier * synergy * hours
+  );
 
   return { resource: slot.resource, amount, cappedElapsedMs };
 }
