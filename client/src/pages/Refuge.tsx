@@ -3,12 +3,15 @@ import { api, type OwnedPokemon, type RefugeState } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
 import { AssignSheet } from "../components/AssignSheet.js";
 import { CreatureAvatar } from "../components/CreatureAvatar.js";
+import { Frame } from "../components/Frame.js";
 import { ResourcePill } from "../components/ResourcePill.js";
 import { SlotCard } from "../components/SlotCard.js";
 import { SynergyPanel } from "../components/SynergyPanel.js";
 import { resourceLabel } from "../components/ResourceIcon.js";
 import { TopBar } from "../components/TopBar.js";
 import { useToast } from "../components/Toast.js";
+
+const fr = (n: number) => n.toLocaleString("fr-FR");
 
 export function Refuge() {
   const [state, setState] = useState<RefugeState | null>(null);
@@ -37,16 +40,20 @@ export function Refuge() {
 
   const showGain = useCallback((slotType: string, amount: number) => {
     setGains((current) => ({ ...current, [slotType]: amount }));
-    setTimeout(() => setGains((current) => {
-      const next = { ...current };
-      delete next[slotType];
-      return next;
-    }), 1500);
+    setTimeout(
+      () =>
+        setGains((current) => {
+          const next = { ...current };
+          delete next[slotType];
+          return next;
+        }),
+      1500
+    );
   }, []);
 
-  const runSlotAction = useCallback(
-    async (slotType: string, action: () => Promise<void>) => {
-      setBusySlot(slotType);
+  const run = useCallback(
+    async (key: string, action: () => Promise<void>) => {
+      setBusySlot(key);
       try {
         await action();
       } catch (err) {
@@ -59,23 +66,30 @@ export function Refuge() {
   );
 
   const handleClaim = (slotType: string) =>
-    runSlotAction(slotType, async () => {
+    run(slotType, async () => {
       const result = await api.claimSlot(slotType);
       if (result.amount > 0 && result.resource) {
         showGain(slotType, result.amount);
-        toast(`+${result.amount.toLocaleString("fr-FR")} ${resourceLabel(result.resource)}`, "success");
+        toast(`+${fr(result.amount)} ${resourceLabel(result.resource)}`, "success");
       } else {
         toast("Rien à récolter pour le moment", "info");
       }
       await load();
     });
 
-  const handleAssign = (slotType: string, pokemonUnitId: string | null) =>
-    runSlotAction(slotType, async () => {
-      const next = await api.assignPokemon(slotType, pokemonUnitId);
-      setState(next);
+  const handleAssign = (slotType: string, pokemonUnitId: string) =>
+    run(slotType, async () => {
+      setState(await api.assignPokemon(slotType, pokemonUnitId));
       setFetchedAt(Date.now());
       setPickerSlot(null);
+      setPokemon(await api.pokemon());
+    });
+
+  const handleRelease = (slotType: string, pokemonUnitId: string) =>
+    run(slotType, async () => {
+      setState(await api.releasePokemon(pokemonUnitId));
+      setFetchedAt(Date.now());
+      setPokemon(await api.pokemon());
     });
 
   const handleClaimAll = async () => {
@@ -85,8 +99,7 @@ export function Refuge() {
         toast("Les enclos sont déjà vides", "info");
       } else {
         for (const entry of claimed) showGain(entry.slotType, entry.amount);
-        const total = claimed.reduce((sum, entry) => sum + entry.amount, 0);
-        toast(`${total.toLocaleString("fr-FR")} ressources récoltées`, "success");
+        toast(`${fr(claimed.reduce((sum, e) => sum + e.amount, 0))} ressources récoltées`, "success");
       }
       await load();
     } catch (err) {
@@ -95,11 +108,21 @@ export function Refuge() {
   };
 
   const pickerSlotState = state?.slots.find((s) => s.type === pickerSlot) ?? null;
+
+  // Candidates for the open pen: the right job, not already in it, and free.
   const candidates = pickerSlot
-    ? pokemon.filter((p) => p.species.trait?.slot === pickerSlot)
+    ? pokemon.filter(
+        (p) =>
+          p.species.trait?.slot === pickerSlot &&
+          !pickerSlotState?.workers.some((w) => w.pokemonUnitId === p.id) &&
+          p.busy?.kind !== "expedition"
+      )
     : [];
 
-  const occupied = state?.slots.filter((s) => s.assigned).length ?? 0;
+  const staffed = state?.slots.filter((s) => s.workers.length > 0).length ?? 0;
+  const seats = state?.slots.reduce((sum, s) => sum + s.capacity, 0) ?? 0;
+  const filled = state?.slots.reduce((sum, s) => sum + s.workers.length, 0) ?? 0;
+  const pending = state?.slots.reduce((sum, s) => sum + s.pendingAmount, 0) ?? 0;
 
   return (
     <>
@@ -111,63 +134,114 @@ export function Refuge() {
           <div>
             <h1 className="page-title">Le Refuge</h1>
             <p className="page-subtitle">
-              {state ? `${occupied} enclos sur ${state.slots.length} en activité · ${pokemon.length} compagnons` : "Réveil du ranch…"}
+              {state
+                ? `${staffed} enclos sur ${state.slots.length} en activité · ${filled}/${seats} places occupées`
+                : "Réveil du ranch…"}
             </p>
           </div>
-          {state && (
-            <div className="res-bar page-res">
-              {Object.entries(state.inventory).map(([resource, amount]) => (
-                <ResourcePill key={resource} resource={resource} amount={amount} showLabel />
-              ))}
-            </div>
-          )}
         </header>
 
         {!state ? (
           <div className="slot-grid">
             {Array.from({ length: 4 }, (_, i) => (
-              <span key={i} className="skeleton" style={{ height: 400 }} />
+              <span key={i} className="skeleton" style={{ height: 420 }} />
             ))}
           </div>
         ) : (
-          <>
-            <div className="refuge-summary">
-              <CreatureAvatar speciesId="sunkern" size={64} />
-              <div className="refuge-summary-text">
-                Production hors-ligne plafonnée à 12&nbsp;h — passe récolter avant que les réservoirs
-                débordent.
+          <div className="stage">
+            {/* Left rail: what the composition is doing. */}
+            <aside className="stage-rail stage-left">
+              <Frame tone="dark" greenery="vine">
+                <SynergyPanel synergies={state.synergies} />
+              </Frame>
+
+              <Frame tone="dark" greenery="none">
+                <p className="rail-title">Compagnons</p>
+                <p className="stat-line">
+                  <span>Au travail</span>
+                  <strong>{filled}</strong>
+                </p>
+                <p className="stat-line">
+                  <span>En expédition</span>
+                  <strong>{state.units.filter((u) => u.busy?.kind === "expedition").length}</strong>
+                </p>
+                <p className="stat-line">
+                  <span>Disponibles</span>
+                  <strong>{state.units.filter((u) => !u.busy).length}</strong>
+                </p>
+              </Frame>
+            </aside>
+
+            {/* Centre: the pens themselves. */}
+            <div className="stage-main">
+              <div className="slot-grid stagger">
+                {state.slots.map((slot) => (
+                  <SlotCard
+                    key={slot.type}
+                    slot={slot}
+                    fetchedAt={fetchedAt}
+                    starsFor={starsByUnit}
+                    busy={busySlot === slot.type}
+                    gain={gains[slot.type] ?? null}
+                    onClaim={() => handleClaim(slot.type)}
+                    onOpenPicker={() => setPickerSlot(slot.type)}
+                    onRelease={(unitId) => handleRelease(slot.type, unitId)}
+                  />
+                ))}
               </div>
-              <button className="btn btn-primary" onClick={handleClaimAll}>
-                Tout récolter
-              </button>
             </div>
 
-            <SynergyPanel synergies={state.synergies} />
+            {/* Right rail: the harvest. */}
+            <aside className="stage-rail stage-right">
+              <Frame greenery="corner">
+                <p className="rail-title">Récolte</p>
+                <p className="refuge-summary-text">
+                  Production hors-ligne plafonnée à 12&nbsp;h — passe récolter avant que les
+                  réservoirs débordent.
+                </p>
+                <p className="stat-line">
+                  <span>En attente</span>
+                  <strong>{fr(pending)}</strong>
+                </p>
+                <button
+                  className="btn btn-primary btn-block"
+                  disabled={busySlot !== null}
+                  onClick={handleClaimAll}
+                >
+                  Tout récolter
+                </button>
+              </Frame>
 
-            <div className="slot-grid stagger">
-              {state.slots.map((slot) => (
-                <SlotCard
-                  key={slot.type}
-                  slot={slot}
-                  fetchedAt={fetchedAt}
-                  starsFor={starsByUnit}
-                  busy={busySlot === slot.type}
-                  gain={gains[slot.type] ?? null}
-                  onClaim={() => handleClaim(slot.type)}
-                  onOpenPicker={() => setPickerSlot(slot.type)}
-                  onRelease={() => handleAssign(slot.type, null)}
-                />
-              ))}
-            </div>
-          </>
+              <Frame greenery="none">
+                <p className="rail-title">Réserves</p>
+                <div className="res-bar res-bar-column">
+                  {Object.entries(state.inventory).map(([resource, amount]) => (
+                    <ResourcePill key={resource} resource={resource} amount={amount} showLabel />
+                  ))}
+                </div>
+              </Frame>
+
+              <Frame greenery="none" tone="sunken">
+                <p className="rail-title">Agrandir</p>
+                <p className="choice-prompt">
+                  Chaque niveau d'enclos ajoute une place — et une place, c'est un porteur de trait
+                  de plus pour tes synergies.
+                </p>
+                <a className="btn btn-magic btn-sm btn-block" href="/market">
+                  Aller au marché
+                </a>
+              </Frame>
+            </aside>
+          </div>
         )}
       </div>
 
       {pickerSlotState && (
         <AssignSheet
-          slotLabel={pickerSlotState.label}
+          slotLabel={`${pickerSlotState.label} — ${pickerSlotState.workers.length}/${pickerSlotState.capacity}`}
           candidates={candidates}
-          currentUnitId={pickerSlotState.assigned?.pokemonUnitId ?? null}
+          currentUnitIds={pickerSlotState.workers.map((w) => w.pokemonUnitId)}
+          resource={pickerSlotState.resource}
           onPick={(unitId) => handleAssign(pickerSlotState.type, unitId)}
           onClose={() => setPickerSlot(null)}
         />

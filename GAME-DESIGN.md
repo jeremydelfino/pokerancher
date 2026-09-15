@@ -70,6 +70,38 @@ en tête :
 growlithe: ["mineur", "carapace"],
 ```
 
+### ⚠️ Le nombre de traits n'est pas libre
+
+Il est fixé par la rareté (`TRAITS_PER_RARITY` dans `data/traits.ts`) et
+**vérifié par un test** — `data/roster.test.ts` fait échouer le build si tu te
+trompes :
+
+| rareté | traits | composition |
+|---|---|---|
+| commun | 1 | son métier, rien d'autre |
+| rare | 2 | métier + 1 transversal |
+| épique | 3 | métier + 2 transversaux |
+| légendaire | 4 | métier + 2 transversaux + **sa signature** |
+
+Une espèce sans métier (Keldeo) a le même budget, elle dépense juste les quatre
+lignes en traits transversaux.
+
+Pourquoi ce tableau plutôt que des chiffres plus gros : le métier est imposé par
+l'enclos, il ne crée donc aucune décision. Tout ce qui est au-dessus du métier
+*est* la décision. Faire acheter à la rareté **des traits en plus** plutôt que
+des multiplicateurs en plus, c'est ce qui rend un légendaire structurant au lieu
+d'être un simple gros bâton.
+
+### Les signatures
+
+Un trait marqué `exclusive: true` dans `data/traits.ts` est porté par **une
+seule espèce** et sa synergie s'allume à **1 porteur** — posséder le légendaire
+*est* le seuil. Le test vérifie les trois : un seul porteur, un seul signature
+par légendaire, seuil à 1.
+
+L'interface les dessine en or partout (puce, filtre du Codex) sans que tu aies
+rien à faire : le flag suffit.
+
 C'est tout. Le Pokémon apparaît automatiquement dans le gacha, le codex, la
 sélection d'équipe et le sélecteur d'enclos.
 
@@ -280,6 +312,21 @@ la section 4) — ils tombent dans le même `EffectBag`, et ni la production ni 
 augmente le score d'activité : les étoiles de l'enclos montent sans une ligne
 de moteur en plus.
 
+⚠️ **`capacity` est la vraie récompense.** Un palier n'ajoute pas qu'un
+multiplicateur, il ajoute des **places** : niveau 0/1 → 1 Pokémon, niveau 2 → 2,
+niveau 3 → 3, niveau 4 → 4. Et une place, c'est un porteur de trait de plus qui
+compte dans **toutes** les synergies — c'est là que l'argent achète de la
+composition et pas seulement du rendement.
+
+Les places sont lues depuis l'échelle (`slotCapacity()`), jamais calculées à
+partir du niveau : tu peux faire sauter le niveau 2 directement à trois places
+sans toucher une ligne de code.
+
+Le rendement d'un enclos à plusieurs est la somme des occupants, chacun pondéré
+par son siège (`SLOT_OCCUPANT_WEIGHTS`, tout à 1 aujourd'hui), et le
+multiplicateur d'enclos s'applique **une fois** sur le total — sinon une
+synergie serait comptée quatre fois dans un enclos plein.
+
 ⚠️ **Pas de cible dans les données.** Tu n'écris jamais `target` ici : le moteur
 y colle le type d'enclos concerné au moment de résoudre. Un palier ne peut donc
 physiquement pas booster le mauvais enclos.
@@ -301,6 +348,28 @@ constante.
 dans `GACHA_EGG_COST` (`shared/src/game-logic.ts`). Deux monnaies, un seul œuf :
 les éclats ne viennent que des expéditions, les pièces que du marché, donc les
 deux boucles nourrissent le gacha sans se remplacer.
+
+---
+
+## 6bis. Un Pokémon, un travail
+
+Un Pokémon affecté à un enclos **ne peut pas** partir en expédition, et un
+Pokémon parti en expédition ne peut pas être affecté à un enclos. Deux
+mécanismes, pas un :
+
+- l'unique SQL sur `RefugeAssignment.pokemonUnitId` empêche qu'il travaille deux
+  enclos à la fois — c'est la base de données qui le garantit, pas du code ;
+- `startRun` refuse toute recrue présente dans un enclos, et `assignPokemonToSlot`
+  refuse toute recrue présente dans la run active (lue dans l'état stocké, pas
+  dans une colonne dupliquée qui pourrait diverger).
+
+Côté interface, les deux sélecteurs affichent les indisponibles **en grisé avec
+la raison** plutôt que de les cacher : une règle qu'on découvre par un message
+d'erreur est une règle mal expliquée.
+
+Conséquence de design à garder en tête en équilibrant : agrandir un enclos
+*retire* des Pokémon de tes expéditions. C'est la tension voulue — le Refuge et
+l'exploration se disputent le même roster.
 
 ---
 
@@ -422,6 +491,29 @@ n'a plus aucune raison d'exister. C'est le réglage à ne pas rater.
 
 ---
 
+## 11bis. Le combat est un enregistrement
+
+Le serveur résout le combat **entier** en un appel, puis le stocke coup par
+coup. `CombatResult.blows` est une liste de `CombatBlow` :
+
+```ts
+{ turn, side: "team" | "enemy", memberIndex, damage, fatal, enemyHp, teamHp: number[] }
+```
+
+Chaque entrée porte les points de vie de **tout le monde** après le coup — c'est
+exactement ce dont une barre de vie animée a besoin, et c'est ce qui permet au
+client de *rejouer* le combat sans jamais pouvoir en changer l'issue.
+
+Un tour = chaque membre vivant frappe une fois (dans l'ordre), puis l'ennemi
+riposte sur le premier membre debout. Si l'ennemi tombe en cours de tour, les
+membres restants ne frappent pas — ni dans les données, ni à l'écran.
+
+Le client ne fait que lire cette liste, à une cadence calculée pour que tous les
+combats durent à peu près pareil quelle que soit leur longueur. Ajouter un effet
+visuel ne demande donc jamais de toucher au moteur.
+
+---
+
 ## 12. Le contrat anti-triche
 
 À respecter en ajoutant des mécaniques, sinon la protection tombe.
@@ -472,7 +564,7 @@ un moment de collection et pas un moment de comptabilité.
 ## 14. Vérifier que tu n'as rien cassé
 
 ```bash
-npm run test --workspace shared   # 68 tests : traits, synergies, run, marché
+npm run test --workspace shared   # 80 tests : roster, traits, synergies, run, marché
 npm run typecheck                 # les trois paquets
 npm run build --workspace shared  # à relancer après toute modif de données
 ```

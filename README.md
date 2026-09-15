@@ -145,7 +145,9 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Reviens automatiquement, un compte est créé, tu reçois 150 `egg_shard`
 
 ### Refuge (Idle)
-- Assigne des Pokémons aux 4 slots (Baies, Pêche, Bois, Minerai)
+- Assigne des Pokémons aux 4 enclos (Baies, Pêche, Bois, Minerai)
+- Un enclos tient **autant de Pokémon que son niveau** : 1 au départ, puis 2, 3 et 4
+  — et chaque place en plus est un porteur de trait de plus pour tes synergies
 - Les ressources s'accumulent automatiquement (même hors-ligne, limité à 12h)
 - Clique **"Récolter"** pour les collecter
 
@@ -155,13 +157,17 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 
 ### Marché (hôtel de vente)
 - Vends tes récoltes à **prix fixe** : baies 1, poissons 2, bois 3, minerai 5 pièces l'unité
-- Les pièces servent à **améliorer les enclos** (4 paliers, jusqu'à ×2 de production)
-  et à acheter des œufs
+- Les pièces servent à **améliorer les enclos** (4 paliers : jusqu'à ×2 de production
+  **et 4 places**) et à acheter des œufs
 - Un palier **remplace** le précédent : le niveau 3 n'est pas le niveau 2 plus un bonus
 
 ### Traits & synergies
 - Un Pokémon peut être **à la fois** travailleur et combattant : le métier (quel enclos
-  il occupe) et le profil de combat sont deux choses indépendantes
+  il occupe) et le profil de combat sont deux choses indépendantes…
+- …mais **pas en même temps** : un Pokémon au travail ne part pas en expédition, et
+  inversement. Agrandir un enclos, c'est retirer du monde à tes expéditions
+- Le nombre de traits dépend de la rareté : **commun 1, rare 2, épique 3, légendaire 4**,
+  dont une **signature** portée par cette seule espèce
 - Les traits ne comptent que là où tu **choisis** les Pokémon : les enclos du Refuge et
   l'équipe de départ d'une expédition (1 à 6 membres)
 - Chaque Pokémon porte des **traits** ; réunir assez de porteurs allume un **palier**
@@ -169,8 +175,10 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
 
 ### Exploration (roguelite)
-- Compose une équipe, choisis ton chemin sur une carte à embranchements
-- Combats, événements, échoppes, reliques temporaires
+- Compose une équipe (1 à 6), choisis ton chemin sur une carte à embranchements
+- Les combats se **rejouent coup par coup** : barre de vie par Pokémon, dégâts flottants,
+  K.O. — le serveur a déjà tout résolu, l'écran ne fait que le raconter
+- Événements, échoppes, reliques temporaires
 - Aux points de décision : **rentrer** avec tout, **sécuriser** une partie, ou **continuer**
 - Mourir fait perdre le butin non sécurisé ; les œufs gagnés éclosent au retour
 
@@ -332,6 +340,8 @@ VITE_SPRITE_BASE_URL="http://localhost:8099"
 - [x] Donjons procéduraux (roguelite) + reliques + risque/récompense
 - [x] Collection / Codex
 - [x] Hôtel de vente + améliorations d'enclos payantes
+- [x] Enclos multi-Pokémon, exclusivité Refuge / exploration
+- [x] Arène de combat animée avec barre de vie par Pokémon
 - [ ] Compositions sauvegardées (builds nommés)
 - [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels

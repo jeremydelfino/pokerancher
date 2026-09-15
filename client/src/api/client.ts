@@ -39,11 +39,18 @@ export const api = {
   logout: () => request<void>("/auth/logout", { method: "POST" }),
 
   refugeState: () => request<RefugeState>("/refuge"),
-  assignPokemon: (slotType: string, pokemonUnitId: string | null) =>
+  assignPokemon: (slotType: string, pokemonUnitId: string) =>
     request<RefugeState>(`/refuge/slots/${slotType}/assign`, {
       method: "POST",
       body: JSON.stringify({ pokemonUnitId }),
     }),
+  releasePokemon: (pokemonUnitId: string) =>
+    request<RefugeState>("/refuge/release", {
+      method: "POST",
+      body: JSON.stringify({ pokemonUnitId }),
+    }),
+  clearSlot: (slotType: string) =>
+    request<RefugeState>(`/refuge/slots/${slotType}/clear`, { method: "POST" }),
   claimSlot: (slotType: string) =>
     request<{ resource: string | null; amount: number }>(`/refuge/slots/${slotType}/claim`, {
       method: "POST",
@@ -115,17 +122,35 @@ export interface CodexEntry {
   starTier: StarTierInfo;
 }
 
+export interface CodexCount {
+  owned: number;
+  total: number;
+}
+
 export interface CodexResponse {
   entries: CodexEntry[];
   ownedCount: number;
   total: number;
+  duplicates: number;
+  starred: number;
+  byRarity: (CodexCount & { rarity: string })[];
+  byTrait: (CodexCount & { traitId: string })[];
+}
+
+export interface RefugeWorker {
+  pokemonUnitId: string;
+  speciesId: string;
+  quantity: number;
+  seat: number;
 }
 
 export interface RefugeSlotState {
   type: string;
   label: string;
   resource: string;
-  assigned: { pokemonUnitId: string; speciesId: string; quantity: number } | null;
+  /** How many Pokémon the pen may hold at its current level. */
+  capacity: number;
+  workers: RefugeWorker[];
   pendingAmount: number;
   /** Combined bonus from active synergies and bought upgrades. 1 means nothing is helping. */
   synergyMultiplier: number;
@@ -133,19 +158,23 @@ export interface RefugeSlotState {
   upgrade: SlotUpgradeState;
 }
 
+/** Why a Pokémon cannot be used right now, or null when it is free. */
+export type BusyState = { kind: "refuge"; slotType: string } | { kind: "expedition" } | null;
+
 export interface RefugeState {
   slots: RefugeSlotState[];
   synergies: SynergyState[];
-  units: { id: string; speciesId: string; quantity: number }[];
+  units: { id: string; speciesId: string; quantity: number; busy: BusyState }[];
   inventory: Record<string, number>;
 }
 
 export interface OwnedPokemon {
   id: string;
   speciesId: string;
-  species: { id: string; name: string; rarity: string; role: string; trait?: { slot: string; multiplier: number } };
+  species: PokemonSpecies;
   quantity: number;
-  starTier: { stars: number; currentCount: number; nextThreshold: number | null; statMultiplier: number };
+  starTier: StarTierInfo;
+  busy: BusyState;
 }
 
 export interface GachaResult {
@@ -196,6 +225,7 @@ export interface UpgradeResponse {
   slotType: string;
   level: number;
   spent: number;
+  capacity: number;
   market: MarketState;
   refuge: RefugeState;
 }

@@ -68,8 +68,28 @@ export interface SlotUpgradeTier {
   label: string;
   /** Coins to go from the previous level to this one. */
   cost: number;
+  /**
+   * How many Pokémon may work the pen at this level. This is the headline
+   * reward — a bigger pen is a bigger *composition*, not just a bigger number,
+   * because every extra body is another trait counted toward every synergy.
+   */
+  capacity: number;
   effects: SlotUpgradeEffect[];
 }
+
+/** Capacity of a pen nobody has upgraded yet. */
+export const SLOT_BASE_CAPACITY = 1;
+
+/**
+ * TODO_GAME_DESIGN — what each additional worker is worth.
+ *
+ * Index 0 is the first Pokémon in a pen, index 1 the second, and so on. All
+ * ones means four workers produce four times as much. Taper it
+ * (`[1, 0.85, 0.7, 0.55]`) if the fourth slot should be a trait slot first and
+ * a production slot second — the synergy count it adds is unaffected either
+ * way, which is exactly the lever this knob gives you.
+ */
+export const SLOT_OCCUPANT_WEIGHTS: readonly number[] = [1, 1, 1, 1];
 
 /**
  * The upgrade ladder, shared by every pen. Costs climb faster than output so
@@ -84,6 +104,7 @@ export const SLOT_UPGRADE_TIERS: readonly SlotUpgradeTier[] = [
     level: 1,
     label: "Outils affûtés",
     cost: 150,
+    capacity: 1,
     effects: [
       { type: "slot_rate", value: 1.15, mode: "mult" },
       { type: "activity_score", value: 0.5 },
@@ -93,6 +114,7 @@ export const SLOT_UPGRADE_TIERS: readonly SlotUpgradeTier[] = [
     level: 2,
     label: "Enclos agrandi",
     cost: 500,
+    capacity: 2,
     effects: [
       { type: "slot_rate", value: 1.35, mode: "mult" },
       { type: "activity_score", value: 1 },
@@ -102,6 +124,7 @@ export const SLOT_UPGRADE_TIERS: readonly SlotUpgradeTier[] = [
     level: 3,
     label: "Atelier de tri",
     cost: 1400,
+    capacity: 3,
     effects: [
       { type: "slot_rate", value: 1.6, mode: "mult" },
       { type: "activity_score", value: 1.5 },
@@ -111,6 +134,7 @@ export const SLOT_UPGRADE_TIERS: readonly SlotUpgradeTier[] = [
     level: 4,
     label: "Exploitation modèle",
     cost: 3500,
+    capacity: 4,
     effects: [
       { type: "slot_rate", value: 2, mode: "mult" },
       { type: "activity_score", value: 2 },

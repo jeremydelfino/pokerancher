@@ -7,6 +7,9 @@ export type SlotType = "BERRY_FARM" | "FISHING_DOCK" | "WOODCUTTING" | "MINING";
 
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 
+/** Ascending. Index is the rank, so sorting by rarity is an index comparison. */
+export const RARITY_ORDER: readonly Rarity[] = ["common", "rare", "epic", "legendary"];
+
 /**
  * Combat profile, nothing more.
  *

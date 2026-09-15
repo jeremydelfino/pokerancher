@@ -114,20 +114,42 @@ export interface CombatSide {
   attack: number;
 }
 
-export interface CombatRound {
-  round: number;
-  attacker: "team" | "enemy";
+/**
+ * One swing.
+ *
+ * The fight is stored blow by blow rather than as a summary so the client can
+ * *replay* it: every entry carries who swung, who was hit, and the hit points of
+ * everyone afterwards, which is exactly what an animated health bar needs. The
+ * server still decides the whole fight in one go — this is a recording, not a
+ * conversation.
+ */
+export interface CombatBlow {
+  /** 1-based. Each turn is: every living member swings once, then the enemy. */
+  turn: number;
+  /** Who is swinging. */
+  side: "team" | "enemy";
+  /** The member swinging (side "team") or being hit (side "enemy"). */
+  memberIndex: number;
   damage: number;
-  teamHpAfter: number;
-  enemyHpAfter: number;
+  /** True when this blow took its target to zero. */
+  fatal: boolean;
+  enemyHp: number;
+  /** Every member's hit points after the blow, in team order. */
+  teamHp: number[];
 }
 
 export interface CombatResult {
   victory: boolean;
-  rounds: CombatRound[];
+  blows: CombatBlow[];
+  turns: number;
+  /** The enemy as it started, with `hp` holding what was left of it. */
   enemy: CombatSide;
   /** Team hit points after the fight, same order as the team. */
   teamHp: number[];
+  /** Ceilings used during the fight, so the client can draw bars without the bag. */
+  teamMaxHp: number[];
+  /** Attack values used, for the team panel. */
+  teamAttack: number[];
 }
 
 export interface EnemyDefinition {

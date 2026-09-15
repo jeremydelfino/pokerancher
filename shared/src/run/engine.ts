@@ -166,7 +166,12 @@ function rewardOption(template: RewardTemplate, bag: EffectBag, rng: () => numbe
  * A player stacking Chanceux sees relics and eggs more often, not bigger piles
  * of berries.
  */
-function rollRewardChoice(state: RunState, bag: EffectBag, seed: number): PendingChoice {
+function rollRewardChoice(
+  state: RunState,
+  bag: EffectBag,
+  seed: number,
+  title = "Victoire"
+): PendingChoice {
   const rng = makeRng(seed);
   const luck = bag.flat("run_luck");
   const pool = [...REWARD_TEMPLATES];
@@ -178,7 +183,7 @@ function rollRewardChoice(state: RunState, bag: EffectBag, seed: number): Pendin
     options.push(rewardOption(template, bag, rng));
   }
 
-  return { kind: "reward", title: "Victoire", prompt: "Choisis ta récompense.", options };
+  return { kind: "reward", title, prompt: "Choisis ta récompense.", options };
 }
 
 function rollEventChoice(seed: number): PendingChoice {
@@ -294,7 +299,9 @@ export function enterNode(state: RunState, nodeId: string): RunState {
     }
 
     case "reward":
-      next = { ...next, pending: [rollRewardChoice(next, bag, subSeed(seed, 3))] };
+      // Not a victory — nobody fought. Calling it one made a treasure chest read
+      // as the end of a battle that never happened.
+      next = { ...next, pending: [rollRewardChoice(next, bag, subSeed(seed, 3), "Trésor")] };
       break;
 
     case "event":

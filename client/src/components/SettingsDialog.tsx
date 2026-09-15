@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Frame } from "./Frame.js";
 import { useAuth } from "../state/AuthContext.js";
 import { THEMES, THEME_HINT, THEME_LABEL, useTheme } from "../state/ThemeContext.js";
 
@@ -17,7 +18,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Paramètres">
+      <Frame className="modal" greenery="both" role="dialog" aria-modal aria-label="Paramètres">
         <div className="modal-head">
           <h2 className="modal-title">Paramètres</h2>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>
@@ -47,7 +48,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             Se déconnecter
           </button>
         </div>
-      </div>
+      </Frame>
     </>
   );
 }

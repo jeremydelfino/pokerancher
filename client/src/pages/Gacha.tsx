@@ -3,6 +3,7 @@ import { api, type EggCurrency, type EggPrice, type GachaResult } from "../api/c
 import { Ambience } from "../components/Ambience.js";
 import { CreatureAvatar, RARITY_AURA } from "../components/CreatureAvatar.js";
 import { Egg } from "../components/Egg.js";
+import { Frame } from "../components/Frame.js";
 import { ResourceIcon, resourceLabel } from "../components/ResourceIcon.js";
 import { RARITY_LABEL, Stars } from "../components/Stars.js";
 import { TopBar } from "../components/TopBar.js";
@@ -179,7 +180,7 @@ export function Gacha() {
               ))}
           </div>
 
-          <div className="gacha-panel card">
+          <Frame className="gacha-panel" greenery="both">
             {/* Two currencies, one egg: shards come back from expeditions, coins
                 from the auction house. The player picks which pocket to empty. */}
             {prices && (
@@ -230,7 +231,7 @@ export function Gacha() {
                 </div>
               </>
             )}
-          </div>
+          </Frame>
         </div>
       </div>
     </>

@@ -60,7 +60,10 @@ export function SynergyPanel({
 
   return (
     <section className="synergy-panel">
-      <h2 className="section-title">{title}</h2>
+      <p className="rail-title">
+        {title}
+        {shown.length > 0 && <span>{shown.filter((state) => state.tierIndex > 0).length} allumée(s)</span>}
+      </p>
 
       {shown.length === 0 ? (
         <p className="synergy-empty">{empty}</p>

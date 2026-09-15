@@ -40,8 +40,8 @@ model PokemonUnit {
   quantity       Int      @default(1)
   createdAt      DateTime @default(now())
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refugeSlot RefugeSlot?
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refugeWork RefugeAssignment?
 
   @@unique([userId, speciesId])
 }
@@ -50,15 +50,31 @@ model RefugeSlot {
   id              String   @id @default(uuid())
   userId          String
   slotType        String
-  pokemonUnitId   String?  @unique
   lastCollectedAt DateTime @default(now())
-  /// Pen upgrade level bought with coins. 0 is the pen as built.
+  /// Pen upgrade level bought with coins. 0 is the pen as built, and the level
+  /// is what caps how many workers the pen may hold.
   level           Int      @default(0)
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pokemonUnit PokemonUnit? @relation(fields: [pokemonUnitId], references: [id], onDelete: SetNull)
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workers RefugeAssignment[]
 
   @@unique([userId, slotType])
+}
+
+/// One Pokemon working one pen. A pen holds as many of these as its level
+/// allows; the unique on pokemonUnitId is what stops the same Pokemon working
+/// two pens at once — and, with the run check in refugeService, two jobs at once.
+model RefugeAssignment {
+  id            String @id @default(uuid())
+  slotId        String
+  pokemonUnitId String @unique
+  /// Position in the pen, 0-based. Drives the occupant weighting.
+  seat          Int    @default(0)
+
+  slot        RefugeSlot  @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  pokemonUnit PokemonUnit @relation(fields: [pokemonUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([slotId, seat])
 }
 
 /// One roguelite expedition. The whole thing is a seed plus the path taken, so

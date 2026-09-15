@@ -48,6 +48,12 @@ export interface TraitDefinition {
   category?: string;
   /** Short pixel-friendly glyph shown on chips. */
   icon?: string;
+  /**
+   * A signature trait carried by exactly one species — the fourth trait every
+   * legendary gets. The engine treats it like any other trait; this flag only
+   * drives how it is drawn and what the roster test enforces.
+   */
+  exclusive?: boolean;
 }
 
 export interface SynergyThreshold {

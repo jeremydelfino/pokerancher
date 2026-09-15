@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNERGIES } from "../data/synergies.js";
 import { activityStars } from "./stars.js";
 import { EffectBag, buildEffectBag } from "./effects.js";
 import { countTraits, resolveSynergies, resolveSynergy, resolveTraits, teamEffectBag } from "./engine.js";
@@ -40,19 +41,24 @@ describe("countTraits", () => {
 });
 
 describe("resolveSynergy", () => {
+  // Read the ladder rather than hardcoding it: these test the engine, and a
+  // rebalance in data/synergies.ts must not be able to fail them.
+  const LADDER = SYNERGIES.fertilisation.thresholds;
+  const [T1, T2, TOP] = LADDER;
+
   it("reports no tier below the first threshold", () => {
-    const state = resolveSynergy("fertilisation", 1);
+    const state = resolveSynergy("fertilisation", T1.count - 1);
     expect(state.tierIndex).toBe(0);
     expect(state.currentTier).toBeNull();
-    expect(state.nextThreshold).toBe(2);
+    expect(state.nextThreshold).toBe(T1.count);
     expect(state.toNext).toBe(1);
   });
 
   it("keeps every met tier and points at the next", () => {
-    const state = resolveSynergy("fertilisation", 3);
+    const state = resolveSynergy("fertilisation", T2.count);
     expect(state.tierIndex).toBe(2);
     expect(state.activeTiers).toHaveLength(2);
-    expect(state.nextThreshold).toBe(4);
+    expect(state.nextThreshold).toBe(TOP.count);
   });
 
   it("reports no next threshold at max", () => {
@@ -62,22 +68,22 @@ describe("resolveSynergy", () => {
   });
 
   it("applies only the highest tier by default, TFT style", () => {
-    const state = resolveSynergy("fertilisation", 4);
-    expect(state.activeTiers).toHaveLength(3);
+    const state = resolveSynergy("fertilisation", TOP.count);
+    expect(state.activeTiers).toHaveLength(LADDER.length);
     expect(state.effectiveTiers).toHaveLength(1);
     expect(state.effectiveTiers[0]).toBe(state.currentTier);
   });
 
   it("does not multiply the whole ladder together", () => {
     // The trap this guards: with cumulative stacking and absolute values, three
-    // tiers of 1.15 / 1.35 / 1.7 would compound to x2.64 instead of x1.7.
-    const bag = teamEffectBag([
-      { speciesId: "bulbasaur" },
-      { speciesId: "snivy" },
-      { speciesId: "sunkern" },
-      { speciesId: "torterra" },
-    ]);
-    expect(bag.multiplier("slot_rate", "BERRY_FARM")).toBeCloseTo(1.7);
+    // absolute tiers would compound instead of replacing one another.
+    const holders = ["bulbasaur", "snivy", "sunkern", "torterra", "leafeon", "shaymin"]
+      .slice(0, TOP.count)
+      .map((speciesId) => ({ speciesId }));
+    const bag = teamEffectBag(holders);
+
+    const expected = TOP.effects.find((e) => e.type === "slot_rate" && e.target === "BERRY_FARM")!;
+    expect(bag.multiplier("slot_rate", "BERRY_FARM")).toBeCloseTo(expected.value);
   });
 
   it("sorts strongest first so the panel reads top-down", () => {

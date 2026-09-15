@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SlotUpgradeEffect, SlotUpgradeTier } from "@pokerancher/shared";
 import { api, type MarketStall, type MarketState } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
+import { Frame } from "../components/Frame.js";
+import { MarketScene } from "../components/MarketScene.js";
 import { ResourceIcon, resourceLabel } from "../components/ResourceIcon.js";
 import { RARITY_LABEL } from "../components/Stars.js";
 import { TopBar } from "../components/TopBar.js";
@@ -24,10 +26,13 @@ function describeEffect(effect: SlotUpgradeEffect): string {
 }
 
 function tierSummary(tier: SlotUpgradeTier): string {
-  return tier.effects.map(describeEffect).join(" · ");
+  return [`${tier.capacity} place${tier.capacity > 1 ? "s" : ""}`, ...tier.effects.map(describeEffect)].join(
+    " · "
+  );
 }
 
-/** One stall: a stock, a fixed price, and a quantity the player picks. */
+/* --- One stall ------------------------------------------------------------- */
+
 function Stall({
   stall,
   onSell,
@@ -50,29 +55,36 @@ function Stall({
   const total = amount * stall.unitPrice;
 
   return (
-    <article className={`stall ${empty ? "stall-empty" : ""} rarity-${stall.grade}`}>
+    <article
+      className={`stall rarity-${stall.grade} ${empty ? "stall-empty" : ""}`}
+      style={{ ["--stall-color" as string]: `var(--res-${stall.resource})` }}
+    >
+      {/* A striped canopy over each counter, in the resource's own colour. */}
+      <span className="stall-awning" aria-hidden="true" />
+
       <header className="stall-head">
-        <span
-          className="res-dot res-dot-lg"
-          style={{ ["--res-color" as string]: `var(--res-${stall.resource})` }}
-        >
+        <span className="res-dot res-dot-lg">
           <ResourceIcon resource={stall.resource} size={18} />
         </span>
-        <div>
+        <div className="stall-ident">
           <h3 className="stall-name">{resourceLabel(stall.resource)}</h3>
           <span className="badge">{RARITY_LABEL[stall.grade] ?? stall.grade}</span>
         </div>
         <span className="stall-price">
-          {stall.unitPrice} <ResourceIcon resource="coin" size={10} /> /u
+          {stall.unitPrice}
+          <ResourceIcon resource="coin" size={10} />
         </span>
       </header>
 
       <p className="stall-blurb">{stall.blurb}</p>
 
-      <p className="stall-stock">
-        En stock : <strong>{fr(stall.owned)}</strong>
-        {!empty && <span className="muted"> · soit {fr(stall.totalIfSoldAll)} pièces</span>}
-      </p>
+      <div className="stall-counter">
+        <span className="stall-stock">
+          <span className="stall-stock-value">{fr(stall.owned)}</span>
+          <span className="res-name">en stock</span>
+        </span>
+        <span className="stall-worth">{fr(stall.totalIfSoldAll)} pièces au total</span>
+      </div>
 
       <div className="stall-controls">
         <input
@@ -107,15 +119,17 @@ function Stall({
       </div>
 
       <button
-        className="btn btn-primary"
+        className="btn btn-primary btn-block"
         disabled={empty || busy || amount <= 0}
         onClick={() => onSell(stall.resource, amount)}
       >
-        {amount > 0 ? `Vendre ${fr(amount)} → ${fr(total)} pièces` : "Choisis une quantité"}
+        {empty ? "Étal vide" : amount > 0 ? `Vendre ${fr(amount)} → ${fr(total)} ¢` : "Choisis une quantité"}
       </button>
     </article>
   );
 }
+
+/* --- Page ------------------------------------------------------------------ */
 
 export function Market() {
   const [state, setState] = useState<MarketState | null>(null);
@@ -132,10 +146,10 @@ export function Market() {
   }, [load, toast]);
 
   const run = useCallback(
-    async (action: () => Promise<MarketState>, success: (next: MarketState) => void) => {
+    async (action: () => Promise<MarketState>) => {
       setBusy(true);
       try {
-        success(await action());
+        setState(await action());
       } catch (err) {
         toast(err instanceof Error ? err.message : String(err), "error");
       } finally {
@@ -146,35 +160,26 @@ export function Market() {
   );
 
   const handleSell = (resource: string, quantity: number) =>
-    run(
-      async () => {
-        const result = await api.sell(resource, quantity);
-        toast(`+${fr(result.earned)} pièces`, "success");
-        return result.market;
-      },
-      setState
-    );
+    run(async () => {
+      const result = await api.sell(resource, quantity);
+      toast(`+${fr(result.earned)} pièces`, "success");
+      return result.market;
+    });
 
   const handleSellAll = () =>
-    run(
-      async () => {
-        const result = await api.sellAll();
-        if (result.sold.length === 0) toast("Tes étals sont vides", "info");
-        else toast(`+${fr(result.earned)} pièces pour ${result.sold.length} lots`, "success");
-        return result.market;
-      },
-      setState
-    );
+    run(async () => {
+      const result = await api.sellAll();
+      if (result.sold.length === 0) toast("Tes étals sont vides", "info");
+      else toast(`+${fr(result.earned)} pièces pour ${result.sold.length} lots`, "success");
+      return result.market;
+    });
 
   const handleUpgrade = (slotType: string, label: string) =>
-    run(
-      async () => {
-        const result = await api.upgradeSlot(slotType);
-        toast(`${label} — niveau ${result.level} débloqué !`, "success");
-        return result.market;
-      },
-      setState
-    );
+    run(async () => {
+      const result = await api.upgradeSlot(slotType);
+      toast(`${label} — niveau ${result.level}, ${result.capacity} places !`, "success");
+      return result.market;
+    });
 
   const sellableTotal = useMemo(
     () => state?.stalls.reduce((sum, stall) => sum + stall.totalIfSoldAll, 0) ?? 0,
@@ -194,108 +199,124 @@ export function Market() {
               Les prix sont fixes et affichés — écoule tes récoltes, puis réinvestis dans les enclos.
             </p>
           </div>
-
-          <div className="coin-purse">
-            <span className="res-dot res-dot-lg" style={{ ["--res-color" as string]: "var(--res-coin)" }}>
-              <ResourceIcon resource="coin" size={18} />
-            </span>
-            <span className="coin-amount">{fr(coins)}</span>
-            <span className="coin-label">pièces</span>
-          </div>
         </header>
 
         {!state ? (
-          <div className="stall-grid">
-            {Array.from({ length: 4 }, (_, i) => (
-              <span key={i} className="skeleton" style={{ height: 260 }} />
-            ))}
-          </div>
+          <span className="skeleton" style={{ height: 380 }} />
         ) : (
-          <>
-            <div className="refuge-summary">
-              <span className="res-dot res-dot-lg" style={{ ["--res-color" as string]: "var(--res-coin)" }}>
-                <ResourceIcon resource="coin" size={18} />
-              </span>
-              <div className="refuge-summary-text">
-                {sellableTotal > 0
-                  ? `Tout ton stock vaut ${fr(sellableTotal)} pièces. Un œuf en coûte ${fr(state.eggCoinCost)}.`
-                  : `Rien à vendre pour l'instant — récolte au Refuge ou reviens d'expédition. Un œuf coûte ${fr(state.eggCoinCost)} pièces.`}
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={busy || sellableTotal <= 0}
-                onClick={handleSellAll}
-              >
-                Tout vendre
-              </button>
-            </div>
-
-            <h2 className="section-title">Les étals</h2>
-            <div className="stall-grid stagger">
-              {state.stalls.map((stall) => (
-                <Stall key={stall.resource} stall={stall} onSell={handleSell} busy={busy} />
-              ))}
-            </div>
-
-            <h2 className="section-title">Améliorations d'enclos</h2>
-            <p className="market-note">
-              Chaque palier remplace le précédent : le niveau 3 n'est pas le niveau 2 plus un bonus,
-              c'est un nouveau rendement.
-            </p>
-
-            <div className="upgrade-grid stagger">
-              {state.upgrades.map((upgrade) => (
-                <article
-                  key={upgrade.slotType}
-                  className={`upgrade ${upgrade.next === null ? "upgrade-maxed" : ""}`}
-                >
-                  <header className="upgrade-head">
-                    <h3 className="stall-name">{upgrade.label}</h3>
-                    <span className="upgrade-level">
-                      Niv. {upgrade.level}/{upgrade.maxLevel}
-                    </span>
-                  </header>
-
-                  {/* A pixel pip per level: the ladder is short enough to read at a glance. */}
-                  <span className="upgrade-pips" aria-hidden="true">
-                    {upgrade.ladder.map((tier) => (
-                      <span
-                        key={tier.level}
-                        className={`upgrade-pip ${tier.level <= upgrade.level ? "upgrade-pip-on" : ""}`}
-                      />
-                    ))}
+          <div className="stage">
+            {/* Left rail: the purse and the one-click liquidation. */}
+            <aside className="stage-rail stage-left">
+              <Frame greenery="vine">
+                <p className="rail-title">Ta bourse</p>
+                <div className="purse">
+                  <span className="res-dot res-dot-lg" style={{ ["--res-color" as string]: "var(--res-coin)" }}>
+                    <ResourceIcon resource="coin" size={18} />
                   </span>
+                  <span className="coin-amount">{fr(coins)}</span>
+                </div>
 
-                  <p className="upgrade-current">
-                    {upgrade.currentLabel ? `Actuel : ${upgrade.currentLabel}` : "Enclos d'origine"}
-                  </p>
+                <p className="stat-line">
+                  <span>Valeur du stock</span>
+                  <strong>{fr(sellableTotal)} ¢</strong>
+                </p>
+                <p className="stat-line">
+                  <span>Prix d'un œuf</span>
+                  <strong>{fr(state.eggCoinCost)} ¢</strong>
+                </p>
 
-                  {upgrade.next ? (
-                    <>
-                      <div className="upgrade-next">
-                        <strong>{upgrade.next.label}</strong>
-                        <span>{tierSummary(upgrade.next)}</span>
-                      </div>
-                      <button
-                        className="btn btn-magic"
-                        disabled={busy || !upgrade.affordable}
-                        onClick={() => handleUpgrade(upgrade.slotType, upgrade.label)}
-                      >
-                        {fr(upgrade.next.cost)} pièces
-                      </button>
-                      {upgrade.missing !== null && (
-                        <p className="muted" style={{ fontSize: "var(--read-sm)" }}>
-                          Il te manque {fr(upgrade.missing)} pièces.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="upgrade-done">Niveau maximum atteint.</p>
-                  )}
-                </article>
-              ))}
+                <button
+                  className="btn btn-primary btn-block"
+                  disabled={busy || sellableTotal <= 0}
+                  onClick={handleSellAll}
+                >
+                  Tout vendre
+                </button>
+              </Frame>
+
+              <Frame tone="sunken" greenery="none">
+                <p className="rail-title">Comment ça marche</p>
+                <p className="choice-prompt" style={{ marginBottom: 0 }}>
+                  Les pièces n'existent qu'ici : aucun enclos n'en produit, aucune expédition n'en
+                  rapporte. La vente est la seule entrée, les enclos et les œufs les seules sorties.
+                </p>
+              </Frame>
+            </aside>
+
+            {/* Centre: the square, then the counters. */}
+            <div className="stage-main">
+              <Frame tone="dark" greenery="none" className="market-frame">
+                <div className="market-banner">
+                  <MarketScene />
+                  <span className="market-haze" aria-hidden="true" />
+                  <span className="market-sign">Place du Marché</span>
+                </div>
+              </Frame>
+
+              <div className="stall-grid">
+                {state.stalls.map((stall) => (
+                  <Stall key={stall.resource} stall={stall} onSell={handleSell} busy={busy} />
+                ))}
+              </div>
             </div>
-          </>
+
+            {/* Right rail: what the coins are for. */}
+            <aside className="stage-rail stage-right">
+              <Frame greenery="corner">
+                <p className="rail-title">Agrandir les enclos</p>
+                <p className="choice-prompt">
+                  Chaque palier remplace le précédent et ajoute une place — donc un porteur de trait
+                  de plus.
+                </p>
+
+                <div className="upgrade-stack">
+                  {state.upgrades.map((upgrade) => (
+                    <article
+                      key={upgrade.slotType}
+                      className={`upgrade ${upgrade.next === null ? "upgrade-maxed" : ""}`}
+                    >
+                      <header className="upgrade-head">
+                        <h3 className="stall-name">{upgrade.label}</h3>
+                        <span className="upgrade-level">
+                          {upgrade.capacity} place{upgrade.capacity > 1 ? "s" : ""}
+                        </span>
+                      </header>
+
+                      <span className="upgrade-pips" aria-hidden="true">
+                        {upgrade.ladder.map((tier) => (
+                          <span
+                            key={tier.level}
+                            className={`upgrade-pip ${tier.level <= upgrade.level ? "upgrade-pip-on" : ""}`}
+                          />
+                        ))}
+                      </span>
+
+                      {upgrade.next ? (
+                        <>
+                          <div className="upgrade-next">
+                            <strong>{upgrade.next.label}</strong>
+                            <span>{tierSummary(upgrade.next)}</span>
+                          </div>
+                          <button
+                            className="btn btn-magic btn-sm btn-block"
+                            disabled={busy || !upgrade.affordable}
+                            onClick={() => handleUpgrade(upgrade.slotType, upgrade.label)}
+                          >
+                            {fr(upgrade.next.cost)} pièces
+                          </button>
+                          {upgrade.missing !== null && (
+                            <p className="upgrade-missing">Il te manque {fr(upgrade.missing)} ¢.</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="upgrade-done">Niveau maximum</p>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </Frame>
+            </aside>
+          </div>
         )}
       </div>
     </>

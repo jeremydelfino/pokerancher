@@ -4,7 +4,7 @@ import { starTierForCount } from "../game-logic.js";
 import { POKEMON_BY_ID } from "../pokemon-data.js";
 import type { EffectBag } from "../traits/effects.js";
 import { makeRng, pick } from "./rng.js";
-import type { CombatResult, CombatRound, CombatSide, EnemyDefinition, RunNodeType, RunTeamMember } from "./types.js";
+import type { CombatBlow, CombatResult, CombatSide, EnemyDefinition, RunNodeType, RunTeamMember } from "./types.js";
 
 /**
  * Deterministic combat.
@@ -18,7 +18,7 @@ import type { CombatResult, CombatRound, CombatSide, EnemyDefinition, RunNodeTyp
  * counted without anyone having to rewrite the team.
  */
 
-const MAX_ROUNDS = 80;
+const MAX_TURNS = 80;
 
 export function memberAttack(member: RunTeamMember, bag: EffectBag): number {
   return Math.max(1, Math.round(bag.apply(member.attack, "combat_attack")));
@@ -60,39 +60,62 @@ export function resolveCombat(
   bag: EffectBag
 ): CombatResult {
   const rng = makeRng(seed);
-  const hp = team.map((member) => Math.min(member.hp, memberMaxHp(member, bag)));
+  const maxHp = team.map((member) => memberMaxHp(member, bag));
   const attacks = team.map((member) => memberAttack(member, bag));
-  const rounds: CombatRound[] = [];
+  const hp = team.map((member, i) => Math.min(member.hp, maxHp[i]));
+  const blows: CombatBlow[] = [];
 
   let enemyHp = enemy.hp;
-  let round = 1;
+  let turn = 1;
 
-  const teamHpTotal = () => hp.reduce((sum, value) => sum + Math.max(0, value), 0);
+  const standing = () => hp.some((value) => value > 0);
+  const snapshot = () => [...hp];
 
-  while (enemyHp > 0 && teamHpTotal() > 0 && round <= MAX_ROUNDS) {
-    const teamDamage = hp.reduce(
-      (sum, value, index) => (value > 0 ? sum + jitter(attacks[index], rng) : sum),
-      0
-    );
-    enemyHp = Math.max(0, enemyHp - teamDamage);
-    rounds.push({ round, attacker: "team", damage: teamDamage, teamHpAfter: teamHpTotal(), enemyHpAfter: enemyHp });
+  while (enemyHp > 0 && standing() && turn <= MAX_TURNS) {
+    // The team swings in order, one blow each. A member that drops the enemy
+    // ends the turn — the rest do not swing at a corpse.
+    for (let i = 0; i < team.length && enemyHp > 0; i++) {
+      if (hp[i] <= 0) continue;
+      const damage = jitter(attacks[i], rng);
+      enemyHp = Math.max(0, enemyHp - damage);
+      blows.push({
+        turn,
+        side: "team",
+        memberIndex: i,
+        damage,
+        fatal: enemyHp === 0,
+        enemyHp,
+        teamHp: snapshot(),
+      });
+    }
 
     if (enemyHp <= 0) break;
 
     // The enemy focuses the front-most member still standing.
     const target = hp.findIndex((value) => value > 0);
     if (target === -1) break;
-    const enemyDamage = jitter(enemy.attack, rng);
-    hp[target] = Math.max(0, hp[target] - enemyDamage);
-    rounds.push({ round, attacker: "enemy", damage: enemyDamage, teamHpAfter: teamHpTotal(), enemyHpAfter: enemyHp });
+    const damage = jitter(enemy.attack, rng);
+    hp[target] = Math.max(0, hp[target] - damage);
+    blows.push({
+      turn,
+      side: "enemy",
+      memberIndex: target,
+      damage,
+      fatal: hp[target] === 0,
+      enemyHp,
+      teamHp: snapshot(),
+    });
 
-    round++;
+    turn++;
   }
 
   return {
-    victory: enemyHp <= 0 && teamHpTotal() > 0,
-    rounds,
+    victory: enemyHp <= 0 && standing(),
+    blows,
+    turns: turn,
     enemy: { ...enemy, hp: enemyHp },
     teamHp: hp,
+    teamMaxHp: maxHp,
+    teamAttack: attacks,
   };
 }

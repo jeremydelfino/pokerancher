@@ -81,7 +81,7 @@ describe("resolveCombat", () => {
     const a = resolveCombat(state.team, enemy, 42, new EffectBag());
     const b = resolveCombat(state.team, enemy, 42, new EffectBag());
     expect(a.victory).toBe(b.victory);
-    expect(a.rounds).toEqual(b.rounds);
+    expect(a.blows).toEqual(b.blows);
   });
 
   it("lets relic bonuses bite without the team being rewritten", () => {
@@ -110,10 +110,51 @@ describe("resolveCombat", () => {
     expect(resolveCombat(battered, rollEnemy("boss", 8, 3), 7, new EffectBag()).victory).toBe(false);
   });
 
+  it("records every blow with the hit points that follow it", () => {
+    const state = startRun(555, RECRUITS);
+    const result = resolveCombat(state.team, rollEnemy("combat", 0, 3), 7, new EffectBag());
+
+    expect(result.blows.length).toBeGreaterThan(0);
+    expect(result.teamMaxHp).toHaveLength(state.team.length);
+    for (const blow of result.blows) {
+      // Every snapshot is complete, in team order, and never negative — the
+      // client draws bars straight from these without clamping.
+      expect(blow.teamHp).toHaveLength(state.team.length);
+      expect(blow.teamHp.every((hp) => hp >= 0)).toBe(true);
+      expect(blow.enemyHp).toBeGreaterThanOrEqual(0);
+      expect(blow.memberIndex).toBeLessThan(state.team.length);
+    }
+    // The last snapshot is the fight's outcome, not an approximation of it.
+    expect(result.blows[result.blows.length - 1].teamHp).toEqual(result.teamHp);
+  });
+
+  it("stops the turn once the enemy drops instead of swinging at a corpse", () => {
+    const state = startRun(555, RECRUITS);
+    const result = resolveCombat(
+      state.team,
+      rollEnemy("combat", 0, 3),
+      7,
+      new EffectBag().addAll([{ type: "combat_attack", value: 500 }])
+    );
+    expect(result.victory).toBe(true);
+    // One member one-shots it, so the fight is exactly one blow long.
+    expect(result.blows).toHaveLength(1);
+    expect(result.blows[0].fatal).toBe(true);
+  });
+
+  it("marks the blow that takes a member down", () => {
+    const solo = startRun(555, [{ unitId: "u", speciesId: "sunkern", duplicateCount: 1 }]);
+    const battered = solo.team.map((m) => ({ ...m, hp: 1 }));
+    const result = resolveCombat(battered, rollEnemy("boss", 8, 3), 7, new EffectBag());
+    const killing = result.blows.filter((blow) => blow.side === "enemy" && blow.fatal);
+    expect(killing).toHaveLength(1);
+    expect(killing[0].teamHp[killing[0].memberIndex]).toBe(0);
+  });
+
   it("always terminates", () => {
     const state = startRun(1, [{ unitId: "u", speciesId: "sunkern", duplicateCount: 1 }]);
     const enemy = rollEnemy("boss", 20, 9);
-    expect(resolveCombat(state.team, enemy, 3, new EffectBag()).rounds.length).toBeGreaterThan(0);
+    expect(resolveCombat(state.team, enemy, 3, new EffectBag()).blows.length).toBeGreaterThan(0);
   });
 });
 

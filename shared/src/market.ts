@@ -1,6 +1,7 @@
 import {
   MARKET_BY_RESOURCE,
   MARKET_LISTINGS,
+  SLOT_BASE_CAPACITY,
   SLOT_UPGRADES_REPLACE_PREVIOUS,
   SLOT_UPGRADE_TIERS,
   type MarketListing,
@@ -79,6 +80,17 @@ export function maxSlotLevel(slotType: SlotType): number {
   return slotUpgradeLadder(slotType).length;
 }
 
+/**
+ * How many Pokémon may work a pen at this level.
+ *
+ * Reads the ladder rather than doing arithmetic on the level, so a designer can
+ * make level 2 jump straight to three workers without touching any code.
+ */
+export function slotCapacity(slotType: SlotType, level: number): number {
+  const tier = slotUpgradeLadder(slotType).find((candidate) => candidate.level === level);
+  return tier?.capacity ?? SLOT_BASE_CAPACITY;
+}
+
 /** The tier a pen would buy next, or null when it is already maxed. */
 export function nextSlotUpgrade(slotType: SlotType, level: number): SlotUpgradeTier | null {
   return slotUpgradeLadder(slotType).find((tier) => tier.level === level + 1) ?? null;
@@ -110,6 +122,10 @@ export interface SlotUpgradeState {
   slotType: SlotType;
   level: number;
   maxLevel: number;
+  /** Workers allowed right now. */
+  capacity: number;
+  /** Workers the next tier would allow, or null when maxed. */
+  nextCapacity: number | null;
   /** Label of the level currently owned, or null at level 0. */
   currentLabel: string | null;
   next: SlotUpgradeTier | null;
@@ -131,6 +147,8 @@ export function slotUpgradeState(
     slotType,
     level,
     maxLevel: ladder.length,
+    capacity: slotCapacity(slotType, level),
+    nextCapacity: next?.capacity ?? null,
     currentLabel: ladder.find((tier) => tier.level === level)?.label ?? null,
     next,
     missing: next && shortfall > 0 ? shortfall : null,

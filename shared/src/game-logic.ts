@@ -1,3 +1,4 @@
+import { SLOT_OCCUPANT_WEIGHTS } from "./data/market.js";
 import { POKEMON_BY_ID, SLOTS_BY_TYPE } from "./pokemon-data.js";
 import type { PokemonSpecies, Rarity, ResourceType, SlotType, StarTierInfo } from "./types.js";
 
@@ -40,18 +41,29 @@ export function starTierForCount(duplicateCount: number): StarTierInfo {
   };
 }
 
-export interface ProductionInput {
+export interface PenOccupant {
   speciesId: string;
-  slotType: SlotType;
-  /** Milliseconds elapsed since the slot was last claimed. */
-  elapsedMs: number;
   /** Duplicate count owned for this species, used for the star-tier stat bonus. */
   duplicateCount: number;
+}
+
+export interface PenProductionInput {
+  slotType: SlotType;
+  /** Everyone working the pen. An empty pen produces nothing. */
+  occupants: readonly PenOccupant[];
+  /** Milliseconds elapsed since the pen was last claimed. */
+  elapsedMs: number;
   /**
-   * Combined multiplier from active Refuge synergies. Defaults to 1 so every
-   * existing caller — and every saved game — keeps its old numbers until the
-   * composition is actually passed in.
+   * Combined multiplier from active Refuge synergies and bought upgrades.
+   * Defaults to 1 so every existing caller — and every saved game — keeps its
+   * old numbers until the composition is actually passed in.
    */
+  synergyMultiplier?: number;
+}
+
+export interface ProductionInput extends PenOccupant {
+  slotType: SlotType;
+  elapsedMs: number;
   synergyMultiplier?: number;
 }
 
@@ -61,34 +73,61 @@ export interface ProductionResult {
   cappedElapsedMs: number;
 }
 
-/**
- * Server-authoritative production calc: elapsed time is always derived from a
- * server-stored `lastCollectedAt`, never from a client-supplied timestamp, and
- * is capped at MAX_OFFLINE_MS so idling longer never yields unbounded resources.
- */
-export function computeProduction(input: ProductionInput): ProductionResult {
-  const species = POKEMON_BY_ID[input.speciesId];
-  if (!species) throw new Error(`Unknown species: ${input.speciesId}`);
+/** What one worker contributes per hour, before the pen-wide multiplier. */
+export function occupantRatePerHour(occupant: PenOccupant, slotType: SlotType): number {
+  const species = POKEMON_BY_ID[occupant.speciesId];
+  if (!species) throw new Error(`Unknown species: ${occupant.speciesId}`);
   // Role is a combat profile, not a permission: what decides whether a species
   // can work a pen is whether it has a job at all.
   if (!species.trait) {
     throw new Error(`${species.name} n'a pas de métier et ne peut pas travailler au Refuge`);
   }
-  if (species.trait.slot !== input.slotType) {
-    throw new Error(`${species.name} cannot be assigned to slot ${input.slotType}`);
+  if (species.trait.slot !== slotType) {
+    throw new Error(`${species.name} cannot be assigned to slot ${slotType}`);
   }
 
+  const slot = SLOTS_BY_TYPE[slotType];
+  const { statMultiplier } = starTierForCount(occupant.duplicateCount);
+  return slot.baseRatePerHour * species.trait.multiplier * statMultiplier;
+}
+
+/**
+ * Server-authoritative production calc for a whole pen.
+ *
+ * Elapsed time is always derived from a server-stored `lastCollectedAt`, never
+ * from a client-supplied timestamp, and is capped at MAX_OFFLINE_MS so idling
+ * longer never yields unbounded resources.
+ *
+ * Workers are summed, each weighted by its seat (SLOT_OCCUPANT_WEIGHTS), and
+ * the pen-wide multiplier is applied once to the total rather than per worker —
+ * otherwise a synergy would be counted four times in a full pen.
+ */
+export function computePenProduction(input: PenProductionInput): ProductionResult {
   const slot = SLOTS_BY_TYPE[input.slotType];
   const cappedElapsedMs = Math.min(Math.max(input.elapsedMs, 0), MAX_OFFLINE_MS);
   const hours = cappedElapsedMs / (60 * 60 * 1000);
-  const { statMultiplier } = starTierForCount(input.duplicateCount);
+
+  const ratePerHour = input.occupants.reduce((sum, occupant, seat) => {
+    const weight = SLOT_OCCUPANT_WEIGHTS[seat] ?? SLOT_OCCUPANT_WEIGHTS[SLOT_OCCUPANT_WEIGHTS.length - 1] ?? 1;
+    return sum + occupantRatePerHour(occupant, input.slotType) * weight;
+  }, 0);
 
   const synergy = input.synergyMultiplier ?? 1;
-  const amount = Math.floor(
-    slot.baseRatePerHour * species.trait.multiplier * statMultiplier * synergy * hours
-  );
+  return {
+    resource: slot.resource,
+    amount: Math.floor(ratePerHour * synergy * hours),
+    cappedElapsedMs,
+  };
+}
 
-  return { resource: slot.resource, amount, cappedElapsedMs };
+/** Single-worker convenience — the same maths with a one-element pen. */
+export function computeProduction(input: ProductionInput): ProductionResult {
+  return computePenProduction({
+    slotType: input.slotType,
+    occupants: [{ speciesId: input.speciesId, duplicateCount: input.duplicateCount }],
+    elapsedMs: input.elapsedMs,
+    synergyMultiplier: input.synergyMultiplier,
+  });
 }
 
 function pickWeighted<T extends { rarity: Rarity }>(pool: readonly T[], rng: () => number): T {

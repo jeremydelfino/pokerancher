@@ -2,6 +2,7 @@ import {
   abandonRun as abandonRunState,
   availableNodes,
   enterNode as enterNodeState,
+  POKEMON_BY_ID,
   POKEMON_SPECIES,
   randomSeed,
   resolveChoice,
@@ -17,6 +18,7 @@ import {
 } from "@pokerancher/shared";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
+import { unitsWorking } from "./refugeService.js";
 
 /**
  * Server-side run orchestration.
@@ -105,6 +107,17 @@ export async function startRun(userId: string, unitIds: string[]) {
     where: { id: { in: unitIds.slice(0, RUN_CONFIG.teamSize) }, userId },
   });
   if (units.length === 0) throw new Error("Aucun de ces compagnons ne t'appartient");
+
+  // A Pokemon does one job at a time. The pen is the harder claim to give up —
+  // it is already producing — so the expedition is the one that gets refused.
+  const working = await unitsWorking(userId);
+  const busy = units.filter((unit) => working.has(unit.id));
+  if (busy.length > 0) {
+    const names = busy.map((unit) => POKEMON_BY_ID[unit.speciesId]?.name ?? unit.speciesId);
+    throw new Error(
+      `${names.join(", ")} ${busy.length > 1 ? "travaillent" : "travaille"} au Refuge — retire-${busy.length > 1 ? "les" : "le"} d'abord`
+    );
+  }
 
   const recruits: RunRecruit[] = units.map((unit) => ({
     unitId: unit.id,

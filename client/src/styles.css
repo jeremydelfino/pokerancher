@@ -4,5 +4,7 @@
 @import "./styles/ambience.css";
 @import "./styles/scenes.css";
 @import "./styles/components.css";
+@import "./styles/frames.css";
+@import "./styles/battle.css";
 @import "./styles/pages.css";
 @import "./styles/game.css";
