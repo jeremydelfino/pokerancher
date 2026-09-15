@@ -686,26 +686,11 @@
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 800;
   background: rgba(18, 14, 28, 0.72);
   animation: fade-in var(--dur) var(--ease-out);
 }
 
-.sheet {
-  position: fixed;
-  z-index: 801;
-  left: 50%;
-  bottom: 0;
-  width: min(760px, calc(100vw - var(--s5)));
-  max-height: 82vh;
-  transform: translateX(-50%);
-  animation: sheet-in var(--dur-slow) var(--ease-pop) both;
-}
-
-.sheet > .frame-inner {
-  max-height: calc(82vh - var(--wood-band) * 2);
-  overflow-y: auto;
-}
 
 .sheet-head {
   display: flex;
@@ -767,26 +752,11 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: 800;
   background: rgba(18, 14, 28, 0.75);
   animation: fade-in var(--dur) var(--ease-out);
 }
 
-.modal {
-  position: fixed;
-  z-index: 801;
-  top: 50%;
-  left: 50%;
-  width: min(520px, calc(100vw - var(--s5)));
-  max-height: 86vh;
-  transform: translate(-50%, -50%);
-  animation: modal-in var(--dur-slow) var(--ease-pop) both;
-}
-
-.modal > .frame-inner {
-  max-height: calc(86vh - var(--wood-band) * 2);
-  overflow-y: auto;
-}
 
 .modal-head {
   display: flex;
@@ -1225,4 +1195,11 @@
 
 .res-bar-column .res-pill {
   justify-content: flex-start;
+}
+
+/* The imported logo, when there is one. Object-fit keeps a non-square file from
+   being stretched, and the pixelated rendering keeps a small source crisp. */
+.brand-logo {
+  object-fit: contain;
+  image-rendering: pixelated;
 }

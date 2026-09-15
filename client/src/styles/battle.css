@@ -78,46 +78,81 @@
   opacity: 0.6;
 }
 
-/* --- Foes ----------------------------------------------------------------- */
+/* --- Type badges ---------------------------------------------------------- */
 
-.foe {
+.type-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 1px var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: #16121f;
+  background: var(--type-color, #a8a878);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.type-badge-sm {
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+/* --- Pokémon sprites ------------------------------------------------------ */
+
+.pkspr {
   position: relative;
   display: inline-grid;
   place-items: center;
 }
 
-.foe-art {
-  position: relative;
-  z-index: 1;
-  animation: foe-breathe 2.6s steps(2, end) infinite;
+.pkspr-img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
 }
 
-.foe-shadow {
-  position: absolute;
-  bottom: -4px;
-  width: 62%;
-  height: 8px;
-  background: rgba(18, 14, 28, 0.42);
-  filter: blur(1px);
+.pkspr-bob {
+  animation: pkspr-bob 2.4s steps(2, end) infinite;
 }
 
-@keyframes foe-breathe {
+@keyframes pkspr-bob {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-4px); }
 }
 
-/* --- The arena ------------------------------------------------------------ */
+.pkspr-fallback {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: #16121f;
+}
 
-.battle {
+.pkspr-shadow {
+  position: absolute;
+  bottom: 2px;
+  width: 54%;
+  height: 8px;
+  background: rgba(18, 14, 28, 0.38);
+  filter: blur(2px);
+}
+
+/* --- The battle screen ---------------------------------------------------- */
+
+.pkbattle {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
-  min-height: 340px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: clamp(420px, 46vh, 560px);
   overflow: hidden;
-  box-shadow: inset 0 0 0 2px rgba(18, 14, 28, 0.55);
 }
 
-.battle-bg {
+.pkbattle-bg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -125,237 +160,298 @@
   image-rendering: pixelated;
 }
 
-/* A vignette so the fighters sit inside the frame rather than on top of it. */
-.battle-haze {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 62%, transparent 30%, rgba(18, 14, 28, 0.42) 100%),
-    linear-gradient(to bottom, rgba(18, 14, 28, 0.32), transparent 34%);
-}
-
-.battle-foe {
+/* The field is one box with two diagonal corners — foe up-right, yours
+   down-left. That diagonal is what makes a screen read as a Pokémon battle. */
+.pkbattle-field {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   display: grid;
-  justify-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  padding: var(--s4) var(--s5);
   gap: var(--s2);
-  padding: var(--s4) var(--s4) 0;
-  justify-self: center;
 }
 
-.battle-nameplate {
+.side {
   display: grid;
-  gap: var(--px);
+  align-content: center;
+  gap: var(--s2);
+}
+
+.side-foe {
+  grid-column: 2;
+  grid-row: 1;
   justify-items: center;
-  min-width: 230px;
-  padding: var(--s2) var(--s3);
-  background: rgba(18, 14, 28, 0.72);
-  box-shadow: 0 0 0 2px var(--ink);
 }
 
-.battle-name {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  color: var(--c-white);
-  text-shadow: 2px 2px 0 var(--ink);
-}
-
-.battle-actor {
-  position: relative;
-}
-
-/* A grid, not a flex row: six fighters must sit on one line whatever the panel
-   width, and wrapping the sixth onto its own row made the party look broken. */
-.battle-party {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  justify-content: center;
-  gap: var(--px);
-  padding: var(--s3) var(--s2);
-  background: linear-gradient(to top, rgba(18, 14, 28, 0.78), transparent);
-}
-
-.battle-fighter {
-  position: relative;
-  display: grid;
+.side-team {
+  grid-column: 1;
+  grid-row: 2;
   justify-items: center;
-  gap: 2px;
-  min-width: 0;
-  padding: var(--px) var(--s1) var(--s1);
-  background: rgba(18, 14, 28, 0.55);
-  box-shadow: 0 0 0 2px var(--ink);
-  transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.battle-fighter-name {
-  max-width: 100%;
-  overflow: hidden;
-  font-family: var(--font-display);
-  font-size: 9px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--c-white);
+.fighter {
+  position: relative;
+  display: grid;
+  place-items: center;
 }
 
-/* --- Blow feedback -------------------------------------------------------- */
-
-/* A hit flashes the sprite white and shoves it back a pixel or two. */
-.actor-hit {
-  animation: actor-hit 260ms steps(3, end);
+.fighter-hit {
+  animation: fighter-hit 320ms steps(3, end);
 }
 
-@keyframes actor-hit {
-  0% { filter: brightness(4) saturate(0); transform: translateX(6px); }
-  50% { filter: brightness(1.8) saturate(0.4); transform: translateX(-3px); }
-  100% { filter: none; transform: none; }
+@keyframes fighter-hit {
+  0% { filter: brightness(4) saturate(0); opacity: 0.4; }
+  50% { filter: brightness(2) saturate(0.4); opacity: 1; }
+  100% { filter: none; }
 }
 
-.actor-lunge-right {
-  animation: lunge-right 300ms var(--ease-pop);
+.fighter-ko {
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.45;
+  transform: translateY(10px) rotate(-8deg);
+  transition: transform var(--dur-slow) var(--ease-out), opacity var(--dur-slow);
 }
 
-.actor-lunge-left {
-  animation: lunge-left 300ms var(--ease-pop);
-}
-
-@keyframes lunge-right {
-  0% { transform: translateX(0); }
-  45% { transform: translateX(14px) translateY(-4px); }
-  100% { transform: translateX(0); }
-}
-
-@keyframes lunge-left {
-  0% { transform: translateX(0); }
-  45% { transform: translateX(-16px) translateY(4px); }
-  100% { transform: translateX(0); }
-}
-
-/* Out of the fight: face down, greyed, but still on screen — a gap in the row
-   would make the party jump around every time someone dropped. */
-.actor-ko {
-  filter: grayscale(1) brightness(0.55);
-  opacity: 0.75;
-}
-
-.actor-ko .creature-art,
-.actor-ko .foe-art {
-  transform: rotate(-16deg) translateY(6px);
-  animation: none;
-}
-
-.battle-quake {
-  animation: quake 280ms steps(4, end);
+.shake {
+  animation: quake 300ms steps(4, end);
 }
 
 @keyframes quake {
   0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-3px, 2px); }
-  50% { transform: translate(3px, -2px); }
+  25% { transform: translate(-4px, 2px); }
+  50% { transform: translate(4px, -2px); }
   75% { transform: translate(-2px, -1px); }
 }
 
+/* --- Health plates -------------------------------------------------------- */
+
+.plate {
+  display: grid;
+  gap: 3px;
+  width: min(280px, 100%);
+  padding: var(--s2) var(--s3);
+  background: rgba(23, 17, 31, 0.82);
+  box-shadow: 0 0 0 var(--px) var(--ink), inset 0 2px 0 0 rgba(255, 253, 245, 0.16);
+}
+
+.plate-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.plate-name {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  color: var(--c-white);
+}
+
+.plate-level {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-gold);
+}
+
+.foe-count {
+  padding: 1px var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-white);
+  background: var(--c-danger);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* --- Floating numbers ----------------------------------------------------- */
+
 .damage {
   position: absolute;
-  top: 10%;
+  top: 6%;
   left: 50%;
   z-index: 4;
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   color: var(--c-danger);
-  text-shadow: 2px 2px 0 var(--ink), 0 0 10px rgba(224, 92, 114, 0.8);
+  text-shadow: 2px 2px 0 var(--ink), 0 0 12px rgba(224, 92, 114, 0.85);
   pointer-events: none;
-  animation: damage-float 900ms var(--ease-out) forwards;
+  animation: damage-float 1s var(--ease-out) forwards;
 }
 
 .damage-big {
   font-size: var(--text-2xl);
   color: var(--c-gold);
-  text-shadow: 3px 3px 0 var(--ink), 0 0 14px rgba(255, 212, 121, 0.75);
+  text-shadow: 3px 3px 0 var(--ink), 0 0 16px rgba(255, 212, 121, 0.8);
+}
+
+.damage-heal {
+  color: var(--c-grass-hi);
+  text-shadow: 2px 2px 0 var(--ink), 0 0 12px rgba(127, 176, 105, 0.85);
 }
 
 @keyframes damage-float {
-  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.6); }
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.6); }
   25% { opacity: 1; transform: translate(-50%, -6px) scale(1.15); }
-  60% { opacity: 1; transform: translate(-50%, -22px) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -44px) scale(0.9); }
+  60% { opacity: 1; transform: translate(-50%, -26px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -52px) scale(0.9); }
 }
 
-.battle-banner {
-  position: absolute;
-  top: 40%;
-  left: 50%;
-  z-index: 5;
-  padding: var(--s3) var(--s5);
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
-  animation: banner-slam 420ms var(--ease-pop) both;
-  box-shadow: 0 0 0 var(--px) var(--ink), 0 var(--px2) 0 0 rgba(18, 14, 28, 0.5);
+/* --- The HUD: text box then menu ------------------------------------------ */
+
+.pkbattle-hud {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4) var(--s4);
+  background: linear-gradient(to top, rgba(18, 14, 28, 0.94), rgba(18, 14, 28, 0.78));
+  box-shadow: inset 0 var(--px) 0 0 rgba(255, 253, 245, 0.12);
 }
 
-.banner-win {
-  color: var(--ink);
-  background: var(--c-gold);
-}
-
-.banner-lose {
+/* The RPG text box: one line at a time, with the classic waiting caret. */
+.pkbattle-text {
+  position: relative;
+  min-height: calc(var(--read-lg) * 2.2);
+  padding: var(--s3) var(--s4);
+  font-size: var(--read-lg);
+  line-height: 1.35;
   color: var(--c-white);
-  background: var(--c-danger);
+  background: rgba(23, 17, 31, 0.9);
+  box-shadow: 0 0 0 var(--px) var(--ink), inset 0 0 0 2px rgba(255, 253, 245, 0.2);
 }
 
-@keyframes banner-slam {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
-  70% { opacity: 1; transform: translate(-50%, -50%) scale(0.92); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-.battle-skip {
+.pkbattle-more {
   position: absolute;
   right: var(--s3);
-  top: var(--s3);
-  z-index: 5;
-  padding: 2px var(--s3);
+  bottom: var(--s2);
+  color: var(--c-gold);
+  animation: caret-blink 640ms steps(2, end) infinite;
+}
+
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+.pkbattle-outcome {
+  margin: 0;
+  padding: var(--s2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  text-align: center;
+  color: var(--c-gold);
+}
+
+/* --- Move menu ------------------------------------------------------------ */
+
+.move-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--s2);
+}
+
+.move {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: var(--s2) var(--s3);
+  text-align: left;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-pop);
+  /* The type's colour rides the left edge — enough to scan by, not enough to
+     fight the text. */
+  box-shadow:
+    0 0 0 2px var(--ink),
+    inset 6px 0 0 0 var(--type-color, var(--c-stone)),
+    0 var(--px) 0 0 rgba(18, 14, 28, 0.5);
+}
+
+.move:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.move:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.move-name {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  padding-left: var(--s2);
+}
+
+.move-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding-left: var(--s2);
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.move-pp {
+  font-variant-numeric: tabular-nums;
+}
+
+.move-eff {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  padding: 0 5px;
   font-family: var(--font-display);
   font-size: var(--text-xs);
-  color: var(--ink-on-dark);
-  background: rgba(18, 14, 28, 0.72);
-  cursor: pointer;
   box-shadow: 0 0 0 2px var(--ink);
 }
 
-.battle-skip:hover {
+.eff-good {
   color: var(--ink);
   background: var(--c-gold);
 }
 
+.eff-bad {
+  color: var(--c-white);
+  background: var(--c-stone-dk);
+}
+
+.move-empty {
+  filter: grayscale(0.7);
+}
+
+.switch-card {
+  box-shadow: 0 0 0 2px var(--ink), inset 6px 0 0 0 var(--c-grass), 0 var(--px) 0 0 rgba(18, 14, 28, 0.5);
+}
+
+.move-back {
+  box-shadow: 0 0 0 2px var(--ink), inset 6px 0 0 0 var(--c-stone), 0 var(--px) 0 0 rgba(18, 14, 28, 0.5);
+}
+
+.pkbattle-swap {
+  justify-self: start;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .foe-art,
+  .pkspr-bob,
+  .pkbattle-more,
   .hp-low .hp-fill {
     animation: none;
   }
-  .actor-hit,
-  .actor-lunge-left,
-  .actor-lunge-right,
-  .battle-quake,
-  .battle-banner {
+  .fighter-hit,
+  .shake {
     animation-duration: 1ms;
   }
 }
 
-@media (max-width: 640px) {
-  .battle {
-    min-height: 280px;
+@media (max-width: 720px) {
+  .pkbattle-field {
+    padding: var(--s3);
   }
-  .battle-fighter-name {
-    display: none;
+  .plate {
+    width: 100%;
   }
-  .battle-nameplate {
-    min-width: 170px;
+  .move-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -1,3 +1,4 @@
+import type { BattleState, Battler } from "../battle/types.js";
 import type { ResourceType } from "../types.js";
 import type { TraitEffect } from "../traits/types.js";
 
@@ -19,15 +20,19 @@ export interface RunMap {
   entryIds: string[];
 }
 
-export interface RunTeamMember {
-  /** PokemonUnit id, so rewards can be attributed back to the collection. */
-  unitId: string;
-  speciesId: string;
-  hp: number;
-  maxHp: number;
-  attack: number;
+/**
+ * A team member is a full battler — `key` is its PokemonUnit id, so rewards can
+ * still be attributed back to the collection.
+ *
+ * Base stats are kept alongside the live ones because trait and relic bonuses
+ * are re-applied from the base every time the effect bag changes; recomputing
+ * from the current value would compound a +25 PV relic on every pickup.
+ */
+export interface RunTeamMember extends Battler {
   /** Traits granted for this run only — relics write here. */
   extraTraits: string[];
+  baseMaxHp: number;
+  baseAttack: number;
 }
 
 export interface LootBag {
@@ -74,6 +79,8 @@ export type RunStatus = "active" | "won" | "lost" | "abandoned";
 
 export interface RunState {
   seed: number;
+  /** Which of the ten expeditions this is. */
+  stageId: string;
   status: RunStatus;
   /** Node ids resolved so far, in order. The map comes back from the seed. */
   path: string[];
@@ -93,10 +100,16 @@ export interface RunState {
   pending: PendingChoice[];
   /** Feeds sub-seeds so every resolution is independent and repeatable. */
   step: number;
+  /**
+   * The fight in progress, or null while walking the map.
+   *
+   * A battle is *interactive*: the player sends one action per turn and the
+   * server resolves it, so this has to live in the run state rather than being
+   * a recording produced and forgotten in one call.
+   */
+  battle: BattleState | null;
   /** Set once the run ends, for the summary screen. */
   outcome?: RunOutcome;
-  /** The fight just resolved, kept so the client can replay it as animation. */
-  lastCombat?: CombatResult;
 }
 
 export interface RunOutcome {
@@ -107,58 +120,3 @@ export interface RunOutcome {
   message: string;
 }
 
-export interface CombatSide {
-  name: string;
-  hp: number;
-  maxHp: number;
-  attack: number;
-}
-
-/**
- * One swing.
- *
- * The fight is stored blow by blow rather than as a summary so the client can
- * *replay* it: every entry carries who swung, who was hit, and the hit points of
- * everyone afterwards, which is exactly what an animated health bar needs. The
- * server still decides the whole fight in one go — this is a recording, not a
- * conversation.
- */
-export interface CombatBlow {
-  /** 1-based. Each turn is: every living member swings once, then the enemy. */
-  turn: number;
-  /** Who is swinging. */
-  side: "team" | "enemy";
-  /** The member swinging (side "team") or being hit (side "enemy"). */
-  memberIndex: number;
-  damage: number;
-  /** True when this blow took its target to zero. */
-  fatal: boolean;
-  enemyHp: number;
-  /** Every member's hit points after the blow, in team order. */
-  teamHp: number[];
-}
-
-export interface CombatResult {
-  victory: boolean;
-  blows: CombatBlow[];
-  turns: number;
-  /** The enemy as it started, with `hp` holding what was left of it. */
-  enemy: CombatSide;
-  /** Team hit points after the fight, same order as the team. */
-  teamHp: number[];
-  /** Ceilings used during the fight, so the client can draw bars without the bag. */
-  teamMaxHp: number[];
-  /** Attack values used, for the team panel. */
-  teamAttack: number[];
-}
-
-export interface EnemyDefinition {
-  id: string;
-  name: string;
-  /** Which node types may field this enemy. */
-  tiers: RunNodeType[];
-  hp: number;
-  attack: number;
-  /** Multiplies with run depth so later rows actually bite. */
-  scaling?: number;
-}

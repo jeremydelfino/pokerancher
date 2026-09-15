@@ -449,15 +449,20 @@ moteur les applique par le même chemin : `grantLoot`, `grantRelic`,
 
 ## 10. Les ennemis
 
-**`shared/src/data/enemies.ts`** :
+**`shared/src/data/battlers.ts`**, section `WILD_SPECIES` :
 
 ```ts
-{ id: "spectre", name: "Spectre", tiers: ["elite", "boss"], hp: 200, attack: 18, scaling: 1.2 }
+{ id: "malosse", name: "Malosse", dex: 228, types: ["tenebres", "feu"],
+  moves: ["morsure", "flammeche", "vibrobscur", "lance_flammes"], tier: 3 },
 ```
 
-`tiers` dit dans quels types de nœud l'ennemi peut apparaître — ajouter un boss
-est donc une entrée avec `tiers: ["boss"]`. `scaling` multiplie le durcissement
-par la profondeur défini dans `run-config.ts`.
+Un ennemi est un Pokémon comme un autre : mêmes types, mêmes attaques, même
+formule de dégâts. Ce qui décide où il apparaît, ce n'est plus lui — c'est le
+`wild` du stage dans `stages.ts`. Ajouter un Pokémon sauvage ne le fait donc
+apparaître nulle part tant qu'un stage ne l'a pas listé, ce qui est voulu : la
+difficulté se compose stage par stage, pas espèce par espèce.
+
+⚠️ Le `dex` est obligatoire, et c'est lui qui charge le vrai sprite.
 
 ---
 
@@ -491,26 +496,124 @@ n'a plus aucune raison d'exister. C'est le réglage à ne pas rater.
 
 ---
 
-## 11bis. Le combat est un enregistrement
+## 11bis. Le combat
 
-Le serveur résout le combat **entier** en un appel, puis le stocke coup par
-coup. `CombatResult.blows` est une liste de `CombatBlow` :
+Un combat est **1 contre 1, au tour par tour, avec de vraies attaques**. Ce
+n'est plus un calcul : c'est une suite de décisions que le joueur prend et que
+le serveur résout.
+
+### Les types
+
+`data/types-chart.ts` stocke, pour chaque type, trois listes courtes —
+`strongAgainst`, `weakAgainst`, `noEffect` — plutôt qu'une grille 18×18. Une
+grille, c'est 324 cases que personne ne relit ; « le feu bat la plante » se
+vérifie d'un coup d'œil. `effectiveness()` construit le multiplicateur à partir
+de ces listes, et il se multiplie sur un double type (Roche contre
+Insecte/Vol = ×4).
+
+### Les attaques
 
 ```ts
-{ turn, side: "team" | "enemy", memberIndex, damage, fatal, enemyHp, teamHp: number[] }
+tonnerre: {
+  id: "tonnerre", name: "Tonnerre", type: "electrik",
+  category: "speciale", power: 100, accuracy: 0.8, pp: 8,
+  description: "Foudroie la cible — quand ça touche.",
+}
 ```
 
-Chaque entrée porte les points de vie de **tout le monde** après le coup — c'est
-exactement ce dont une barre de vie animée a besoin, et c'est ce qui permet au
-client de *rejouer* le combat sans jamais pouvoir en changer l'issue.
+`power: 0` veut dire « n'inflige rien » ; ce que l'attaque fait à la place est
+dans `effect` (`heal`, `buff_attack`, `buff_defense`, `debuff_attack`,
+`debuff_defense`). `priority` passe avant la vitesse — c'est ce qui fait
+marcher Vive-Attaque.
 
-Un tour = chaque membre vivant frappe une fois (dans l'ordre), puis l'ennemi
-riposte sur le premier membre debout. Si l'ennemi tombe en cours de tour, les
-membres restants ne frappent pas — ni dans les données, ni à l'écran.
+Garde peu d'attaques de statut : un combat où toutes les options sont un
+ajustement de stat cesse d'être un combat.
 
-Le client ne fait que lire cette liste, à une cadence calculée pour que tous les
-combats durent à peu près pareil quelle que soit leur longueur. Ajouter un effet
-visuel ne demande donc jamais de toucher au moteur.
+### Qui se bat
+
+`data/battlers.ts` donne à chaque espèce ses types, ses quatre attaques et son
+`tier` (1 commun → 5 boss). Trois groupes, une seule forme :
+
+| groupe | rôle |
+|---|---|
+| `SPECIES_BATTLE` | la collection, par id de `pokemon-data.ts` |
+| `WILD_SPECIES` | ce qu'on croise sur le sentier, jamais collectionnable |
+| `BOSS_SPECIES` | un légendaire par stage |
+
+Le `dex` d'un Pokémon sauvage est ce qui fait charger son vrai sprite. Sans
+source de sprites configurée, l'interface retombe sur la créature paramétrique.
+
+### La formule
+
+`data/battle-config.ts`, et rien n'est codé en dur ailleurs :
+
+```
+base   = ((2 × niveau / 5 + 2) × puissance × Attaque / Défense) / 50 + 2
+dégâts = base × efficacité × STAB × aléa(0.85 … 1)
+```
+
+`minDamage: 1` n'est pas de la politesse : sans plancher, une attaque résistée
+contre un mur arrondit à zéro et le combat ne finit jamais.
+
+### Le tour
+
+1. le joueur envoie **un choix** — une attaque, ou un remplacement ;
+2. l'IA adverse choisit la sienne (elle pèse ses attaques par ce qu'elles
+   feraient réellement : une Nuée qui affronte un Steelix cherche ce qui passe
+   au lieu de spammer Charge) ;
+3. l'ordre vient de la priorité, puis de la vitesse, puis d'un tirage seedé ;
+4. K.O. gérés entre les coups, jamais après les deux.
+
+Le journal du tour (`BattleEvent[]`) porte les PV des deux côtés après chaque
+ligne : l'écran rejoue le tour ligne par ligne et les barres suivent le texte,
+au lieu de tomber avant que le texte explique pourquoi.
+
+---
+
+## 11ter. Les dix expéditions
+
+`data/stages.ts`. Un stage se débloque en battant le précédent — et **seul le
+légendaire compte** : rentrer avec le butin ne débloque rien, ce qui est
+exactement la tension du choix « rentrer ou continuer ».
+
+Trois choses changent d'un stage au suivant, délibérément pas dix :
+
+* la longueur du sentier (`rows`) ;
+* la force de ce qui y vit (`level`, et le `wild` disponible) ;
+* **combien il y en a à la fois** (`foes`, de 1 à 3).
+
+Le boss est toujours un légendaire, et toujours seul : un légendaire qui arrive
+accompagné cesse d'être un duel, et le duel est le but.
+
+Ajouter un onzième stage, c'est une entrée ici plus un légendaire dans
+`battlers.ts`. Rien d'autre ne sait qu'il y en a dix.
+
+### Le niveau de ton équipe
+
+Il est calé sur le **stage**, pas sur le Pokémon (`recruitLevel`). Un légendaire
+fraîchement éclos n'est donc pas inutilisable au stage 1, et un starter n'est
+pas condamné au stage 10. Ce que la collection achète vraiment, c'est le `tier`
+(une meilleure ligne de stats à niveau égal) et les niveaux de fusion.
+
+---
+
+## 11quater. Les œufs
+
+`data/eggs.ts`. Deux familles, et c'est toute la raison d'en avoir plusieurs :
+
+* les œufs **ciblés** (`slots`) sont peu chers et étroits — on les achète quand
+  on sait quel enclos manque, en acceptant un commun une fois sur deux ;
+* les œufs **loterie** sont chers et larges — on les achète quand on veut un
+  légendaire sans idée précise.
+
+La rareté est tirée **avant** l'espèce, sinon les chances affichées dériveraient
+avec le nombre d'espèces présentes dans chaque rareté. `eggOdds()` publie
+exactement les chances que `rollEggSpecies()` applique, et la page lit la même
+fonction — ce que l'écran promet et ce que le serveur fait viennent d'un seul
+endroit.
+
+Un poids à 0 veut dire « jamais » : l'Œuf Prisme ne peut pas sortir de commun,
+même en dernier recours.
 
 ---
 
@@ -531,6 +634,11 @@ Donc, concrètement :
 - ❌ jamais de `Math.random()` dans `shared/src/run/`
 - ❌ jamais de `Date.now()` dans une résolution de nœud
 - ❌ jamais de route qui accepte un résultat depuis le client
+- ✅ choisir une attaque est un **choix**, pas un résultat : `POST /run/battle`
+  n'accepte qu'un identifiant d'attaque ou un remplaçant, et le serveur résout
+  le tour lui-même depuis l'état stocké
+- ✅ `enterNode` refuse d'avancer tant qu'un combat est ouvert — la carte vide
+  côté interface est une politesse, pas une règle
 - ✅ le marché suit la même règle : le client envoie « quoi » et « combien »,
   jamais un prix ni un total. `sellQuote()` est rejoué côté serveur contre le
   stock que la base affirme, et le débit est conditionnel (`quantity >= …`)
@@ -564,7 +672,7 @@ un moment de collection et pas un moment de comptabilité.
 ## 14. Vérifier que tu n'as rien cassé
 
 ```bash
-npm run test --workspace shared   # 80 tests : roster, traits, synergies, run, marché
+npm run test --workspace shared   # 95 tests : roster, traits, combat, run, marché
 npm run typecheck                 # les trois paquets
 npm run build --workspace shared  # à relancer après toute modif de données
 ```

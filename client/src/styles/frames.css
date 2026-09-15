@@ -163,17 +163,27 @@
  */
 .stage {
   display: grid;
-  grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) minmax(230px, 300px);
-  gap: var(--s4);
+  grid-template-columns: var(--rail-narrow) minmax(0, 1fr) var(--rail);
+  gap: var(--s5);
   align-items: start;
 }
 
 .stage-no-left {
-  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px);
+  grid-template-columns: minmax(0, 1fr) var(--rail);
 }
 
 .stage-no-right {
-  grid-template-columns: minmax(230px, 320px) minmax(0, 1fr);
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+}
+
+/* Some left rails hold lists of cards (the ten stages, the egg shelf) rather
+   than read-outs. Those need real width or every label ends in an ellipsis. */
+.stage-wide-left {
+  grid-template-columns: var(--rail-wide) minmax(0, 1fr) var(--rail);
+}
+
+.stage-wide-left.stage-no-right {
+  grid-template-columns: var(--rail-wide) minmax(0, 1fr);
 }
 
 .stage-rail {
@@ -239,12 +249,20 @@
 
 /* --- Responsive ----------------------------------------------------------- */
 
+@media (max-width: 1400px) {
+  .stage-wide-left,
+  .stage-wide-left.stage-no-right {
+    grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail-narrow);
+  }
+}
+
 @media (max-width: 1100px) {
   /* Two columns: the scene keeps the width, the rails stack beside it and stop
      sticking — on a short viewport a sticky rail would pin more than it shows. */
   .stage,
   .stage-no-left,
-  .stage-no-right {
+  .stage-no-right,
+  .stage-wide-left {
     grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
   }
   .stage-rail {
@@ -264,7 +282,8 @@
 @media (max-width: 760px) {
   .stage,
   .stage-no-left,
-  .stage-no-right {
+  .stage-no-right,
+  .stage-wide-left {
     grid-template-columns: minmax(0, 1fr);
   }
   .stage-left,
@@ -303,4 +322,37 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* --- Dialog placement ------------------------------------------------------
+   Compound selectors on purpose: every dialog IS a .frame, and `.frame`'s own
+   `position: relative` would otherwise win on source order and drop the dialog
+   into the document flow — which is exactly what it did, landing modals below
+   the fold. Anchoring them here, after .frame, makes the relationship explicit
+   and immune to import order. */
+
+.frame.modal,
+.frame.sheet {
+  position: fixed;
+  z-index: 801;
+  top: 50%;
+  left: 50%;
+  max-height: calc(100vh - var(--s7));
+  transform: translate(-50%, -50%);
+  animation: modal-in var(--dur-slow) var(--ease-pop) both;
+}
+
+.frame.modal {
+  width: min(640px, calc(100vw - var(--s6)));
+}
+
+.frame.sheet {
+  width: min(980px, calc(100vw - var(--s6)));
+}
+
+.frame.modal > .frame-inner,
+.frame.sheet > .frame-inner {
+  max-height: calc(100vh - var(--s7) - var(--wood-band) * 2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

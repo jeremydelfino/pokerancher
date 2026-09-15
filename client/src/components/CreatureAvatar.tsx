@@ -118,7 +118,14 @@ export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, cl
   );
 }
 
-function ProceduralCreature({ speciesId, size }: { speciesId: string; size: number }) {
+/**
+ * The parametric creature.
+ *
+ * Exported because it is also the stand-in for a battler with no sprite source
+ * configured — a wild Pokémon still deserves a silhouette rather than a letter
+ * in a box.
+ */
+export function ProceduralCreature({ speciesId, size }: { speciesId: string; size: number }) {
   const species = POKEMON_BY_ID[speciesId];
   const job: Job = (species?.trait?.slot as Job) ?? "WANDERER";
 

@@ -22,14 +22,14 @@ function weightAt(type: RunNodeType, progress: number): number {
   return early + (late - early) * progress;
 }
 
-export function generateRunMap(seed: number): RunMap {
+export function generateRunMap(seed: number, rowCount = RUN_CONFIG.rows): RunMap {
   const rng = makeRng(subSeed(seed, 0x4d41_5000));
   const rows: RunNode[][] = [];
 
-  for (let row = 0; row < RUN_CONFIG.rows; row++) {
+  for (let row = 0; row < rowCount; row++) {
     const span = RUN_CONFIG.maxWidth - RUN_CONFIG.minWidth + 1;
     const width = RUN_CONFIG.minWidth + Math.floor(rng() * span);
-    const progress = RUN_CONFIG.rows > 1 ? row / (RUN_CONFIG.rows - 1) : 1;
+    const progress = rowCount > 1 ? row / (rowCount - 1) : 1;
 
     rows.push(
       Array.from({ length: width }, (_, col) => ({
@@ -44,7 +44,7 @@ export function generateRunMap(seed: number): RunMap {
     );
   }
 
-  rows.push([{ id: "boss", type: "boss", row: RUN_CONFIG.rows, col: 0, next: [] }]);
+  rows.push([{ id: "boss", type: "boss", row: rowCount, col: 0, next: [] }]);
 
   for (let row = 0; row < rows.length - 1; row++) {
     const current = rows[row];

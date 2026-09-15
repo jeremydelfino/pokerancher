@@ -1,11 +1,15 @@
 import type {
   ActivityStars,
+  BattleAction,
+  EggType,
   MarketListing,
   PokemonSpecies,
+  Rarity,
   RunMap,
   RunState,
   SlotUpgradeState,
   SlotUpgradeTier,
+  StageDefinition,
   StarTierInfo,
   SynergyState,
 } from "@pokerancher/shared";
@@ -62,10 +66,9 @@ export const api = {
 
   pokemon: () => request<OwnedPokemon[]>("/pokemon"),
 
-  gachaInfo: () =>
-    request<{ eggCost: EggPrice; prices: Record<EggCurrency, EggPrice> }>("/gacha"),
-  gachaRoll: (currency: EggCurrency = "egg_shard") =>
-    request<GachaResult>("/gacha/roll", { method: "POST", body: JSON.stringify({ currency }) }),
+  gachaInfo: () => request<{ eggs: EggCard[] }>("/gacha"),
+  gachaRoll: (eggId: string) =>
+    request<GachaResult>("/gacha/roll", { method: "POST", body: JSON.stringify({ eggId }) }),
 
   market: () => request<MarketState>("/market"),
   sell: (resource: string, quantity: number) =>
@@ -78,8 +81,10 @@ export const api = {
     request<UpgradeResponse>(`/market/upgrade/${slotType}`, { method: "POST" }),
 
   runState: () => request<RunEnvelope>("/run"),
-  runStart: (unitIds: string[]) =>
-    request<RunAction>("/run/start", { method: "POST", body: JSON.stringify({ unitIds }) }),
+  runStart: (unitIds: string[], stageId: string) =>
+    request<RunAction>("/run/start", { method: "POST", body: JSON.stringify({ unitIds, stageId }) }),
+  runBattle: (action: BattleAction) =>
+    request<RunAction>("/run/battle", { method: "POST", body: JSON.stringify(action) }),
   runEnter: (nodeId: string) =>
     request<RunAction>("/run/enter", { method: "POST", body: JSON.stringify({ nodeId }) }),
   runChoose: (optionId: string) =>
@@ -92,8 +97,17 @@ export const api = {
 export interface RunView {
   id: string;
   state: RunState;
+  stage: StageDefinition;
   map: RunMap;
   available: string[];
+}
+
+/** A stage as the selection screen sees it. */
+export interface StageCard extends StageDefinition {
+  cleared: boolean;
+  bestDepth: number | null;
+  unlocked: boolean;
+  inProgress: boolean;
 }
 
 /** What the server credited when a run ended: resources, plus any eggs hatched. */
@@ -108,7 +122,8 @@ export interface RunAction {
 }
 
 export interface RunEnvelope {
-  config: { teamSize: number; rows: number };
+  config: { teamSize: number };
+  stages: StageCard[];
   run: RunView | null;
   history: { id: string; status: string; depth: number; endedAt: string | null; message: string }[];
 }
@@ -178,16 +193,17 @@ export interface OwnedPokemon {
 }
 
 export interface GachaResult {
-  species: { id: string; name: string; rarity: string };
+  egg: { id: string; name: string };
+  species: PokemonSpecies;
   quantity: number;
   isNew: boolean;
-  starTier: { stars: number; nextThreshold: number | null; statMultiplier: number };
+  starTier: StarTierInfo;
+  paid: { resource: string; amount: number };
 }
 
-export type EggCurrency = "egg_shard" | "coin";
-export interface EggPrice {
-  resource: string;
-  amount: number;
+/** An egg type with its published odds. */
+export interface EggCard extends EggType {
+  odds: { rarity: Rarity; percent: number }[];
 }
 
 export interface MarketStall extends MarketListing {

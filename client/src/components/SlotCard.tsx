@@ -37,6 +37,7 @@ interface Props {
   onClaim: () => void;
   onOpenPicker: () => void;
   onRelease: (pokemonUnitId: string) => void;
+  onUpgrade: () => void;
 }
 
 export function SlotCard({
@@ -48,6 +49,7 @@ export function SlotCard({
   onClaim,
   onOpenPicker,
   onRelease,
+  onUpgrade,
 }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const staffed = slot.workers.length > 0;
@@ -105,6 +107,26 @@ export function SlotCard({
           <span className="slot-empty-hint">Enclos libre</span>
         )}
         {gain !== null && <span className="gain-float">+{gain.toLocaleString("fr-FR")}</span>}
+
+        {/* The upgrade lives on the pen it upgrades. A gold badge when you can
+            afford the next level, quiet otherwise. */}
+        <button
+          className={`up-badge ${slot.upgrade.affordable ? "up-badge-ready" : ""} ${
+            slot.upgrade.next === null ? "up-badge-max" : ""
+          }`}
+          onClick={onUpgrade}
+          title={
+            slot.upgrade.next
+              ? `Améliorer — ${slot.upgrade.next.label}, ${slot.upgrade.next.cost} pièces`
+              : "Niveau maximum"
+          }
+          aria-label={`Améliorer ${slot.label}`}
+        >
+          <span className="up-badge-mark">UP</span>
+          <span className="up-badge-level">
+            {slot.upgrade.level}/{slot.upgrade.maxLevel}
+          </span>
+        </button>
       </div>
 
       <div className="slot-body">

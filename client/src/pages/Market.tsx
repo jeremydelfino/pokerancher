@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { SlotUpgradeEffect, SlotUpgradeTier } from "@pokerancher/shared";
 import { api, type MarketStall, type MarketState } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
 import { Frame } from "../components/Frame.js";
@@ -11,25 +10,6 @@ import { useToast } from "../components/Toast.js";
 import { useCountUp } from "../hooks/useCountUp.js";
 
 const fr = (n: number) => n.toLocaleString("fr-FR");
-
-/**
- * Effects are stored as raw (type, value, mode) triples on purpose — the engine
- * never interprets them. Somebody has to, eventually, and for the shop that
- * somebody is this table. An unknown type still renders, just literally, so
- * inventing an effect in the data file never produces a blank card.
- */
-function describeEffect(effect: SlotUpgradeEffect): string {
-  if (effect.type === "slot_rate") return `Production ×${effect.value}`;
-  if (effect.type === "resource_rate") return `Ressource ×${effect.value}`;
-  if (effect.type === "activity_score") return `+${effect.value} d'activité`;
-  return `${effect.type} ${effect.mode === "mult" ? "×" : "+"}${effect.value}`;
-}
-
-function tierSummary(tier: SlotUpgradeTier): string {
-  return [`${tier.capacity} place${tier.capacity > 1 ? "s" : ""}`, ...tier.effects.map(describeEffect)].join(
-    " · "
-  );
-}
 
 /* --- One stall ------------------------------------------------------------- */
 
@@ -174,13 +154,6 @@ export function Market() {
       return result.market;
     });
 
-  const handleUpgrade = (slotType: string, label: string) =>
-    run(async () => {
-      const result = await api.upgradeSlot(slotType);
-      toast(`${label} — niveau ${result.level}, ${result.capacity} places !`, "success");
-      return result.market;
-    });
-
   const sellableTotal = useMemo(
     () => state?.stalls.reduce((sum, stall) => sum + stall.totalIfSoldAll, 0) ?? 0,
     [state]
@@ -260,60 +233,46 @@ export function Market() {
               </div>
             </div>
 
-            {/* Right rail: what the coins are for. */}
+            {/* Right rail: the price list, the one thing a seller re-reads. */}
             <aside className="stage-rail stage-right">
               <Frame greenery="corner">
-                <p className="rail-title">Agrandir les enclos</p>
-                <p className="choice-prompt">
-                  Chaque palier remplace le précédent et ajoute une place — donc un porteur de trait
-                  de plus.
-                </p>
-
-                <div className="upgrade-stack">
-                  {state.upgrades.map((upgrade) => (
-                    <article
-                      key={upgrade.slotType}
-                      className={`upgrade ${upgrade.next === null ? "upgrade-maxed" : ""}`}
-                    >
-                      <header className="upgrade-head">
-                        <h3 className="stall-name">{upgrade.label}</h3>
-                        <span className="upgrade-level">
-                          {upgrade.capacity} place{upgrade.capacity > 1 ? "s" : ""}
-                        </span>
-                      </header>
-
-                      <span className="upgrade-pips" aria-hidden="true">
-                        {upgrade.ladder.map((tier) => (
+                <p className="rail-title">Tarifs</p>
+                <table className="price-table">
+                  <tbody>
+                    {state.stalls.map((stall) => (
+                      <tr key={stall.resource}>
+                        <th scope="row">
                           <span
-                            key={tier.level}
-                            className={`upgrade-pip ${tier.level <= upgrade.level ? "upgrade-pip-on" : ""}`}
-                          />
-                        ))}
-                      </span>
-
-                      {upgrade.next ? (
-                        <>
-                          <div className="upgrade-next">
-                            <strong>{upgrade.next.label}</strong>
-                            <span>{tierSummary(upgrade.next)}</span>
-                          </div>
-                          <button
-                            className="btn btn-magic btn-sm btn-block"
-                            disabled={busy || !upgrade.affordable}
-                            onClick={() => handleUpgrade(upgrade.slotType, upgrade.label)}
+                            className="res-dot"
+                            style={{ ["--res-color" as string]: `var(--res-${stall.resource})` }}
                           >
-                            {fr(upgrade.next.cost)} pièces
-                          </button>
-                          {upgrade.missing !== null && (
-                            <p className="upgrade-missing">Il te manque {fr(upgrade.missing)} ¢.</p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="upgrade-done">Niveau maximum</p>
-                      )}
-                    </article>
-                  ))}
-                </div>
+                            <ResourceIcon resource={stall.resource} />
+                          </span>
+                          {resourceLabel(stall.resource)}
+                        </th>
+                        <td>{stall.unitPrice} ¢</td>
+                        <td className="price-stock">{fr(stall.owned)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="choice-prompt" style={{ marginTop: "var(--s3)" }}>
+                  Les prix ne bougent jamais. Ce qui bouge, c'est ce que tu produis.
+                </p>
+              </Frame>
+
+              <Frame tone="sunken" greenery="none">
+                <p className="rail-title">Où vont les pièces</p>
+                <ul className="spend-list">
+                  <li>
+                    <strong>Agrandir un enclos</strong>
+                    <span>Bouton UP sur l'enclos, au Refuge.</span>
+                  </li>
+                  <li>
+                    <strong>Acheter un œuf</strong>
+                    <span>La Couveuse vend cinq œufs en pièces.</span>
+                  </li>
+                </ul>
               </Frame>
             </aside>
           </div>

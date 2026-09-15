@@ -1,48 +1,48 @@
 import {
-  EGG_COIN_COST,
-  GACHA_EGG_COST,
-  POKEMON_SPECIES,
-  rollGachaSpecies,
+  DEFAULT_EGG,
+  EGG_BY_ID,
+  EGG_TYPES,
+  eggOdds,
+  rollEggSpecies,
   starTierForCount,
-  type ResourceType,
 } from "@pokerancher/shared";
 import { prisma } from "../db.js";
 
 /**
- * Two ways to pay for the same egg: shards, which only expeditions drop, and
- * coins, which only the auction house pays out. Both are priced in data; this
- * file just picks which row to debit.
+ * Hatching.
+ *
+ * The client names which egg it is buying — a choice — and the server prices it,
+ * debits it and rolls it. The odds live in data/eggs.ts and are published on the
+ * same payload the button reads, so what the page promises and what the server
+ * does come from one place.
  */
-export type EggCurrency = "egg_shard" | "coin";
 
-export const EGG_PRICES: Record<EggCurrency, { resource: ResourceType; amount: number }> = {
-  egg_shard: GACHA_EGG_COST,
-  coin: { resource: "coin", amount: EGG_COIN_COST },
-};
-
-export function isEggCurrency(value: unknown): value is EggCurrency {
-  return value === "egg_shard" || value === "coin";
+export function eggCatalogue() {
+  return EGG_TYPES.map((egg) => ({ ...egg, odds: eggOdds(egg) }));
 }
 
-export async function rollEgg(userId: string, currency: EggCurrency = "egg_shard") {
-  const price = EGG_PRICES[currency];
+export async function rollEgg(userId: string, eggId: string = DEFAULT_EGG) {
+  const egg = EGG_BY_ID[eggId];
+  if (!egg) throw new Error("Cet œuf n'existe pas");
 
   const wallet = await prisma.inventoryItem.findUnique({
-    where: { userId_resource: { userId, resource: price.resource } },
+    where: { userId_resource: { userId, resource: egg.cost.resource } },
   });
 
-  if (!wallet || wallet.quantity < price.amount) {
+  if (!wallet || wallet.quantity < egg.cost.amount) {
     throw new Error(
-      `Not enough ${price.resource} (need ${price.amount}, have ${wallet?.quantity ?? 0})`
+      `Il te manque ${egg.cost.amount - (wallet?.quantity ?? 0)} ${egg.cost.resource} pour un ${egg.name}`
     );
   }
 
-  const species = rollGachaSpecies(POKEMON_SPECIES);
+  const species = rollEggSpecies(egg);
 
-  const [, unit] = await prisma.$transaction([
-    prisma.inventoryItem.update({
-      where: { userId_resource: { userId, resource: price.resource } },
-      data: { quantity: { decrement: price.amount } },
+  const [paid, unit] = await prisma.$transaction([
+    // Conditional debit: two clicks racing each other must not buy two eggs for
+    // the price of one.
+    prisma.inventoryItem.updateMany({
+      where: { userId, resource: egg.cost.resource, quantity: { gte: egg.cost.amount } },
+      data: { quantity: { decrement: egg.cost.amount } },
     }),
     prisma.pokemonUnit.upsert({
       where: { userId_speciesId: { userId, speciesId: species.id } },
@@ -51,11 +51,14 @@ export async function rollEgg(userId: string, currency: EggCurrency = "egg_shard
     }),
   ]);
 
+  if (paid.count === 0) throw new Error("Paiement refusé");
+
   return {
+    egg: { id: egg.id, name: egg.name },
     species,
     quantity: unit.quantity,
     isNew: unit.quantity === 1,
     starTier: starTierForCount(unit.quantity),
-    paid: price,
+    paid: egg.cost,
   };
 }

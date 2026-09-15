@@ -96,7 +96,7 @@ export async function unitsOnExpedition(userId: string): Promise<Set<string>> {
   });
   if (!run) return new Set();
   const state = run.state as unknown as RunState;
-  return new Set(state.team.map((member) => member.unitId));
+  return new Set(state.team.map((member) => member.key));
 }
 
 export async function unitsWorking(userId: string): Promise<Set<string>> {

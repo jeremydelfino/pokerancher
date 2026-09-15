@@ -9,6 +9,7 @@ import { SlotCard } from "../components/SlotCard.js";
 import { SynergyPanel } from "../components/SynergyPanel.js";
 import { resourceLabel } from "../components/ResourceIcon.js";
 import { TopBar } from "../components/TopBar.js";
+import { UpgradeDialog } from "../components/UpgradeDialog.js";
 import { useToast } from "../components/Toast.js";
 
 const fr = (n: number) => n.toLocaleString("fr-FR");
@@ -19,6 +20,7 @@ export function Refuge() {
   const [fetchedAt, setFetchedAt] = useState(() => Date.now());
   const [busySlot, setBusySlot] = useState<string | null>(null);
   const [pickerSlot, setPickerSlot] = useState<string | null>(null);
+  const [upgradeSlot, setUpgradeSlot] = useState<string | null>(null);
   const [gains, setGains] = useState<Record<string, number>>({});
   const toast = useToast();
 
@@ -92,6 +94,14 @@ export function Refuge() {
       setPokemon(await api.pokemon());
     });
 
+  const handleUpgrade = (slotType: string, label: string) =>
+    run(slotType, async () => {
+      const result = await api.upgradeSlot(slotType);
+      toast(`${label} — niveau ${result.level}, ${result.capacity} places !`, "success");
+      setState(result.refuge);
+      setFetchedAt(Date.now());
+    });
+
   const handleClaimAll = async () => {
     try {
       const { claimed } = await api.claimAll();
@@ -108,6 +118,7 @@ export function Refuge() {
   };
 
   const pickerSlotState = state?.slots.find((s) => s.type === pickerSlot) ?? null;
+  const upgradeSlotState = state?.slots.find((s) => s.type === upgradeSlot) ?? null;
 
   // Candidates for the open pen: the right job, not already in it, and free.
   const candidates = pickerSlot
@@ -186,6 +197,7 @@ export function Refuge() {
                     onClaim={() => handleClaim(slot.type)}
                     onOpenPicker={() => setPickerSlot(slot.type)}
                     onRelease={(unitId) => handleRelease(slot.type, unitId)}
+                    onUpgrade={() => setUpgradeSlot(slot.type)}
                   />
                 ))}
               </div>
@@ -224,17 +236,28 @@ export function Refuge() {
               <Frame greenery="none" tone="sunken">
                 <p className="rail-title">Agrandir</p>
                 <p className="choice-prompt">
-                  Chaque niveau d'enclos ajoute une place — et une place, c'est un porteur de trait
-                  de plus pour tes synergies.
+                  Le bouton <strong>UP</strong> sur un enclos ouvre son échelle d'améliorations.
+                  Chaque niveau ajoute une place — donc un porteur de trait de plus.
                 </p>
-                <a className="btn btn-magic btn-sm btn-block" href="/market">
-                  Aller au marché
-                </a>
+                <p className="stat-line">
+                  <span>Pièces</span>
+                  <strong>{fr(state.inventory.coin ?? 0)}</strong>
+                </p>
               </Frame>
             </aside>
           </div>
         )}
       </div>
+
+      {upgradeSlotState && (
+        <UpgradeDialog
+          slot={upgradeSlotState}
+          coins={state?.inventory.coin ?? 0}
+          busy={busySlot !== null}
+          onBuy={() => handleUpgrade(upgradeSlotState.type, upgradeSlotState.label)}
+          onClose={() => setUpgradeSlot(null)}
+        />
+      )}
 
       {pickerSlotState && (
         <AssignSheet

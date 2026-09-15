@@ -27,16 +27,23 @@ const LAST_ANIMATED_DEX = 649;
 
 export const spriteSource: SpriteSource = SOURCE;
 
-export function spriteUrl(dex: number): string | null {
+export function spriteUrl(dex: number, back = false): string | null {
   if (!dex) return null;
 
   switch (SOURCE) {
-    case "pokeapi":
-      return dex <= LAST_ANIMATED_DEX
-        ? `${POKEAPI_ROOT}/versions/generation-v/black-white/animated/${dex}.gif`
-        : `${POKEAPI_ROOT}/${dex}.png`;
+    case "pokeapi": {
+      // A battle wants the back sprite for your own Pokémon; only the animated
+      // Gen-V set has one, so anything past it falls back to the front art.
+      if (dex <= LAST_ANIMATED_DEX) {
+        const facing = back ? "animated/back" : "animated";
+        return `${POKEAPI_ROOT}/versions/generation-v/black-white/${facing}/${dex}.gif`;
+      }
+      return back ? `${POKEAPI_ROOT}/back/${dex}.png` : `${POKEAPI_ROOT}/${dex}.png`;
+    }
     case "custom":
-      return CUSTOM_BASE ? `${CUSTOM_BASE.replace(/\/$/, "")}/${dex}.png` : null;
+      return CUSTOM_BASE
+        ? `${CUSTOM_BASE.replace(/\/$/, "")}/${back ? "back/" : ""}${dex}.png`
+        : null;
     default:
       return null;
   }

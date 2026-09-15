@@ -269,12 +269,14 @@
   opacity: 1;
 }
 
+/* Capped: the incubator panel is now far wider than the old square stage, and
+   a percentage alone grew the egg to fill it. */
 .egg-wrap {
   position: relative;
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 46%;
+  width: min(46%, 230px);
 }
 
 .egg-idle .egg-art {

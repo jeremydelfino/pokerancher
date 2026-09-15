@@ -1,29 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  memberMaxHp,
   POKEMON_BY_ID,
   RELICS,
   resolveSynergies,
   resolveTraits,
-  runEffectBag,
+  type BattleAction,
+  type RunState,
 } from "@pokerancher/shared";
-import type { RunState } from "@pokerancher/shared";
 import { api, type OwnedPokemon, type RunAward, type RunEnvelope, type RunView } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
-import { BattleScene } from "../components/BattleScene.js";
 import { CreatureAvatar } from "../components/CreatureAvatar.js";
 import { Frame } from "../components/Frame.js";
 import { HealthBar } from "../components/HealthBar.js";
+import { PokemonBattle } from "../components/PokemonBattle.js";
 import { ResourceIcon, resourceLabel } from "../components/ResourceIcon.js";
 import { RunMapView } from "../components/RunMapView.js";
+import { StageSelect } from "../components/StageSelect.js";
 import { SynergyPanel } from "../components/SynergyPanel.js";
 import { TopBar } from "../components/TopBar.js";
 import { TraitChips } from "../components/TraitChip.js";
+import { TypeBadges } from "../components/TypeBadge.js";
 import { useToast } from "../components/Toast.js";
 
 const fr = (n: number) => n.toLocaleString("fr-FR");
 
-/* --- Small shared pieces --------------------------------------------------- */
+/* --- Shared pieces --------------------------------------------------------- */
 
 function LootStrip({ loot, label }: { loot: RunState["carried"]; label: string }) {
   const entries = Object.entries(loot.resources).filter(([, amount]) => (amount ?? 0) > 0);
@@ -49,15 +50,15 @@ function LootStrip({ loot, label }: { loot: RunState["carried"]; label: string }
 /** The left rail during a run: who is alive, how hurt, and what they bring. */
 function PartyRail({ state }: { state: RunState }) {
   const alive = state.team.filter((member) => member.hp > 0).length;
-
-  // Relics raise the ceiling, so the bar has to ask the effect bag for it.
-  // Using the stored `maxHp` would print "76/51" the moment a +PV relic lands.
-  const bag = useMemo(() => runEffectBag(state), [state]);
+  const activeKey = state.battle ? state.battle.team[state.battle.activeIndex]?.key : null;
 
   return (
     <Frame tone="dark" greenery="vine">
       <p className="rail-title">
-        Équipe <span>{alive}/{state.team.length}</span>
+        Équipe
+        <span>
+          {alive}/{state.team.length}
+        </span>
       </p>
 
       <div className="party-list">
@@ -65,11 +66,19 @@ function PartyRail({ state }: { state: RunState }) {
           const species = POKEMON_BY_ID[member.speciesId];
           const down = member.hp <= 0;
           return (
-            <div key={member.unitId} className={`party-card ${down ? "party-card-down" : ""}`}>
+            <div
+              key={member.key}
+              className={`party-card ${down ? "party-card-down" : ""} ${
+                member.key === activeKey ? "party-card-active" : ""
+              }`}
+            >
               <CreatureAvatar speciesId={member.speciesId} size={44} still />
               <div className="party-body">
-                <span className="party-name">{species?.name ?? member.speciesId}</span>
-                <HealthBar hp={member.hp} maxHp={memberMaxHp(member, bag)} size="sm" />
+                <span className="party-name">
+                  {species?.name ?? member.name} <span className="party-level">N.{member.level}</span>
+                </span>
+                <HealthBar hp={member.hp} maxHp={member.maxHp} size="sm" />
+                <TypeBadges types={member.types} size="sm" />
                 <TraitChips traits={resolveTraits(member.speciesId, member.extraTraits)} />
               </div>
               {down && <span className="party-ko">K.O.</span>}
@@ -118,8 +127,13 @@ function SpoilsRail({
       </Frame>
 
       <Frame tone="dark" greenery="none">
-        <SynergyPanel synergies={resolveSynergies(state.team)} title="Synergies actives" />
-        <button className="btn btn-ghost btn-sm btn-block" disabled={busy} onClick={onAbandon}>
+        <SynergyPanel synergies={resolveSynergies(state.team)} title="Synergies" />
+        <button
+          className="btn btn-ghost btn-sm btn-block"
+          disabled={busy || Boolean(state.battle)}
+          onClick={onAbandon}
+          title={state.battle ? "Termine le combat d'abord" : undefined}
+        >
           Abandonner l'expédition
         </button>
       </Frame>
@@ -127,20 +141,26 @@ function SpoilsRail({
   );
 }
 
-/* --- Team picker ----------------------------------------------------------- */
+/* --- Departure ------------------------------------------------------------- */
 
-function TeamPicker({
+function Departure({
+  envelope,
   pokemon,
-  teamSize,
   busy,
   onStart,
 }: {
+  envelope: RunEnvelope;
   pokemon: OwnedPokemon[];
-  teamSize: number;
   busy: boolean;
-  onStart: (unitIds: string[]) => void;
+  onStart: (unitIds: string[], stageId: string) => void;
 }) {
+  const firstOpen =
+    envelope.stages.find((stage) => stage.unlocked && !stage.cleared) ?? envelope.stages[0];
+  const [stageId, setStageId] = useState(firstOpen?.id ?? "");
   const [picked, setPicked] = useState<string[]>([]);
+
+  const teamSize = envelope.config.teamSize;
+  const stage = envelope.stages.find((s) => s.id === stageId) ?? firstOpen;
 
   const toggle = (id: string) =>
     setPicked((current) =>
@@ -166,9 +186,19 @@ function TeamPicker({
 
   const free = pokemon.filter((unit) => !unit.busy);
   const working = pokemon.filter((unit) => unit.busy);
+  const cleared = envelope.stages.filter((s) => s.cleared).length;
 
   return (
-    <div className="stage stage-no-left">
+    <div className="stage stage-wide-left">
+      <aside className="stage-rail stage-left">
+        <Frame greenery="vine">
+          <p className="rail-title">
+            Expéditions <span>{cleared}/{envelope.stages.length}</span>
+          </p>
+          <StageSelect stages={envelope.stages} selected={stageId} onSelect={setStageId} />
+        </Frame>
+      </aside>
+
       <div className="stage-main">
         <Frame greenery="both">
           <p className="rail-title">
@@ -177,6 +207,13 @@ function TeamPicker({
               {picked.length}/{teamSize}
             </span>
           </p>
+
+          {stage && (
+            <p className="choice-prompt">
+              <strong>{stage.name}</strong> — Pokémon sauvages niveau {stage.level}, par{" "}
+              {stage.foes}. Ton équipe partira niveau {stage.level + 2} et plus.
+            </p>
+          )}
 
           <div className="roster-grid">
             {free.map((unit) => (
@@ -216,10 +253,10 @@ function TeamPicker({
           <button
             className="btn btn-magic btn-lg btn-block"
             style={{ marginTop: "var(--s4)" }}
-            disabled={busy || picked.length === 0}
-            onClick={() => onStart(picked)}
+            disabled={busy || picked.length === 0 || !stage?.unlocked}
+            onClick={() => stage && onStart(picked, stage.id)}
           >
-            {busy ? "Départ…" : `Lancer l'expédition (${picked.length})`}
+            {busy ? "Départ…" : stage ? `Partir pour ${stage.name}` : "Choisis une expédition"}
           </button>
         </Frame>
       </div>
@@ -245,9 +282,6 @@ export function Explore() {
   const [inventory, setInventory] = useState<Record<string, number> | undefined>();
   const [award, setAward] = useState<RunAward | null>(null);
   const [busy, setBusy] = useState(false);
-  // Which run step's fight has already been watched, so revisiting the screen
-  // does not replay a battle the player already sat through.
-  const [seenStep, setSeenStep] = useState(-1);
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -283,15 +317,14 @@ export function Explore() {
   const view = envelope?.run ?? null;
   const state = view?.state ?? null;
   const pending = state?.pending[0] ?? null;
-
-  const combat = state?.lastCombat;
-  const replaying = Boolean(combat && state && state.step !== seenStep);
+  const battle = state?.battle ?? null;
 
   const restart = () => {
     setAward(null);
-    setSeenStep(-1);
     load().catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
   };
+
+  const onBattle = (action: BattleAction) => act(() => api.runBattle(action));
 
   return (
     <>
@@ -303,36 +336,27 @@ export function Explore() {
           <div>
             <h1 className="page-title">L'Exploration</h1>
             <p className="page-subtitle">
-              {state?.status === "active"
-                ? `Profondeur ${state.path.length} · ${state.relics.length} relique(s) · ${state.team.filter((m) => m.hp > 0).length} debout`
-                : "Compose une équipe, choisis ton chemin, sécurise avant d'aller trop loin."}
+              {state?.status === "active" && view
+                ? `${view.stage.name} · profondeur ${state.path.length}/${view.stage.rows} · ${state.relics.length} relique(s)`
+                : "Choisis une expédition, compose ton équipe, et va chercher le légendaire."}
             </p>
           </div>
         </header>
 
         {!envelope ? (
-          <span className="skeleton" style={{ height: 380 }} />
-        ) : state && state.status === "active" ? (
+          <span className="skeleton" style={{ height: 420 }} />
+        ) : state && state.status === "active" && view ? (
           <div className="stage">
             <aside className="stage-rail stage-left">
               <PartyRail state={state} />
             </aside>
 
             <div className="stage-main">
-              {/* The fight is the headline whenever there is one: it replays on
-                  arrival, then the decision it earned appears underneath. */}
-              {combat && (
+              {battle ? (
                 <Frame tone="dark" greenery="none" className="battle-frame">
-                  <BattleScene
-                    combat={combat}
-                    team={state.team}
-                    instant={!replaying}
-                    onFinished={() => setSeenStep(state.step)}
-                  />
+                  <PokemonBattle battle={battle} busy={busy} onAction={onBattle} />
                 </Frame>
-              )}
-
-              {!replaying && pending && (
+              ) : pending ? (
                 <Frame greenery="corner">
                   <p className="rail-title">{pending.title}</p>
                   <p className="choice-prompt">{pending.prompt}</p>
@@ -350,12 +374,10 @@ export function Explore() {
                     ))}
                   </div>
                 </Frame>
-              )}
-
-              {!replaying && !pending && view && (
+              ) : (
                 <Frame tone="dark" greenery="both">
                   <p className="rail-title">
-                    Choisis ton chemin <span>profondeur {state.path.length}</span>
+                    Choisis ton chemin <span>{view.stage.name}</span>
                   </p>
                   <RunMapView view={view} busy={busy} onEnter={(id) => act(() => api.runEnter(id))} />
                 </Frame>
@@ -379,15 +401,15 @@ export function Explore() {
               </p>
             ))}
             <button className="btn btn-primary" onClick={restart}>
-              Nouvelle expédition
+              Retour aux expéditions
             </button>
           </Frame>
         ) : (
-          <TeamPicker
+          <Departure
+            envelope={envelope}
             pokemon={pokemon}
-            teamSize={envelope.config.teamSize}
             busy={busy}
-            onStart={(unitIds) => act(() => api.runStart(unitIds))}
+            onStart={(unitIds, stageId) => act(() => api.runStart(unitIds, stageId))}
           />
         )}
       </div>

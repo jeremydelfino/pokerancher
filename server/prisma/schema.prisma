@@ -18,6 +18,7 @@ model User {
   pokemonUnits PokemonUnit[]
   refugeSlots  RefugeSlot[]
   runs         Run[]
+  stageClears  StageClear[]
 }
 
 /// Frugal duplicate-tracking: one row per (user, resource), quantity incremented in place.
@@ -91,4 +92,19 @@ model Run {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
+}
+
+/// One row per expedition a player has beaten. Presence is the whole record —
+/// a stage is either cleared or it is not, and the next one unlocks from that.
+model StageClear {
+  id        String   @id @default(uuid())
+  userId    String
+  stageId   String
+  clearedAt DateTime @default(now())
+  /// Best (lowest) number of nodes it took, for the selection screen.
+  bestDepth Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageId])
 }

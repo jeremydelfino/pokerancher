@@ -148,17 +148,22 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Assigne des Pokémons aux 4 enclos (Baies, Pêche, Bois, Minerai)
 - Un enclos tient **autant de Pokémon que son niveau** : 1 au départ, puis 2, 3 et 4
   — et chaque place en plus est un porteur de trait de plus pour tes synergies
+- Le bouton **UP** sur un enclos ouvre son échelle d'améliorations (il brille quand
+  tu peux te payer le palier suivant)
 - Les ressources s'accumulent automatiquement (même hors-ligne, limité à 12h)
 - Clique **"Récolter"** pour les collecter
 
-### Gacha
-- Clique **"Ouvrir un œuf"** (50 `egg_shard`, ou 400 pièces — le sélecteur est dans le panneau)
+### La Couveuse (gacha)
+- **6 types d'œufs** avec leurs propres chances, affichées sur chaque œuf
+- Trois sont **ciblés** (Mousse, Marée, Roche) et ne sortent qu'un métier — utiles quand
+  il te manque un enclos précis ; les autres sont des loteries larges
+- L'Œuf Prisme ne sort **jamais** de commun
 - Les doublons fusionnent et augmentent les stats (paliers ⭐)
 
 ### Marché (hôtel de vente)
 - Vends tes récoltes à **prix fixe** : baies 1, poissons 2, bois 3, minerai 5 pièces l'unité
-- Les pièces servent à **améliorer les enclos** (4 paliers : jusqu'à ×2 de production
-  **et 4 places**) et à acheter des œufs
+- Les pièces servent à acheter des œufs et à **améliorer les enclos** — l'amélioration se
+  fait au Refuge, via le bouton **UP** sur l'enclos concerné
 - Un palier **remplace** le précédent : le niveau 3 n'est pas le niveau 2 plus un bonus
 
 ### Traits & synergies
@@ -175,9 +180,13 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
 
 ### Exploration (roguelite)
+- **10 expéditions** de difficulté croissante ; battre le légendaire d'un stage débloque
+  le suivant. L'écran de départ montre ce qui est fait, ce qui est ouvert, ce qui est verrouillé
 - Compose une équipe (1 à 6), choisis ton chemin sur une carte à embranchements
-- Les combats se **rejouent coup par coup** : barre de vie par Pokémon, dégâts flottants,
-  K.O. — le serveur a déjà tout résolu, l'écran ne fait que le raconter
+- **Combats Pokémon 1v1 au tour par tour** : vraies attaques, 18 types avec table
+  d'efficacité, PP, précision, priorité, changements de Pokémon. Tu affrontes 1 à 3
+  Pokémon sauvages selon le stage
+- Le **boss de chaque stage est un légendaire** (Artikodin, Électhor… jusqu'à Mewtwo)
 - Événements, échoppes, reliques temporaires
 - Aux points de décision : **rentrer** avec tout, **sécuriser** une partie, ou **continuer**
 - Mourir fait perdre le butin non sécurisé ; les œufs gagnés éclosent au retour
@@ -244,6 +253,7 @@ pokerancher/
 │   └── src/
 │       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
 │       ├── market.ts        # Ventes et paliers d'enclos (règles)
+│       ├── battle/          # Combat Pokémon 1v1 : types, dégâts, tours
 │       ├── pokemon-data.ts  # Espèces, slots, rareté
 │       ├── types.ts         # Interfaces TypeScript
 │       ├── traits/          # Moteur de traits, effets, synergies, étoiles
@@ -325,6 +335,14 @@ VITE_SPRITE_SOURCE="custom"
 VITE_SPRITE_BASE_URL="http://localhost:8099"
 ```
 
+## 🖼️ Ton logo
+
+Dépose `logo_blank.png` dans **`client/public/assets/`**. Il est repris
+automatiquement dans la barre du haut. Tant que le fichier n'est pas là, la
+marque pixel dessinée en SVG sert de repli — rien ne casse.
+
+---
+
 ## 🔐 Sécurité
 
 - ⚠️ **Ne partage JAMAIS** ton `.env` publiquement (contient secrets Discord + DB)
@@ -342,6 +360,9 @@ VITE_SPRITE_BASE_URL="http://localhost:8099"
 - [x] Hôtel de vente + améliorations d'enclos payantes
 - [x] Enclos multi-Pokémon, exclusivité Refuge / exploration
 - [x] Arène de combat animée avec barre de vie par Pokémon
+- [x] Combat Pokémon 1v1 au tour par tour avec vraies attaques et table des types
+- [x] 10 stages de difficulté, boss légendaire, progression débloquante
+- [x] Plusieurs types d'œufs
 - [ ] Compositions sauvegardées (builds nommés)
 - [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels

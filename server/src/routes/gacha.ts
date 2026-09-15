@@ -1,25 +1,25 @@
+import { DEFAULT_EGG } from "@pokerancher/shared";
 import { Router } from "express";
 import { requireAuth } from "../auth/middleware.js";
-import { EGG_PRICES, isEggCurrency, rollEgg } from "../services/gachaService.js";
+import { eggCatalogue, rollEgg } from "../services/gachaService.js";
 
 export const gachaRouter = Router();
 gachaRouter.use(requireAuth);
 
 gachaRouter.get("/", (_req, res) => {
-  res.json({ eggCost: EGG_PRICES.egg_shard, prices: EGG_PRICES });
+  res.json({ eggs: eggCatalogue() });
 });
 
 gachaRouter.post("/roll", async (req, res) => {
-  const { currency } = req.body as { currency?: unknown };
-
-  if (currency !== undefined && !isEggCurrency(currency)) {
-    res.status(400).json({ error: "Monnaie inconnue" });
+  const { eggId } = req.body as { eggId?: unknown };
+  if (eggId !== undefined && typeof eggId !== "string") {
+    res.status(400).json({ error: "eggId invalide" });
     return;
   }
 
   try {
-    res.json(await rollEgg(req.userId!, currency ?? "egg_shard"));
+    res.json(await rollEgg(req.userId!, (eggId as string) ?? DEFAULT_EGG));
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : "Gacha roll failed" });
+    res.status(400).json({ error: err instanceof Error ? err.message : "Éclosion impossible" });
   }
 });

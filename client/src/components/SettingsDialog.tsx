@@ -1,19 +1,13 @@
-import { useEffect } from "react";
 import { Frame } from "./Frame.js";
 import { useAuth } from "../state/AuthContext.js";
 import { THEMES, THEME_HINT, THEME_LABEL, useTheme } from "../state/ThemeContext.js";
+import { useDialog } from "../hooks/useDialog.js";
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useDialog(onClose);
 
   return (
     <>

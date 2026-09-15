@@ -1,13 +1,15 @@
-import { RUN_CONFIG } from "@pokerancher/shared";
+import { RUN_CONFIG, type BattleAction } from "@pokerancher/shared";
 import { Router } from "express";
 import { requireAuth } from "../auth/middleware.js";
 import {
   abandonRun,
+  battleTurn,
   chooseOption,
   describeRun,
   enterNode,
   getActiveRun,
   recentRuns,
+  stageBoard,
   startRun,
 } from "../services/runService.js";
 
@@ -15,9 +17,9 @@ export const runRouter = Router();
 runRouter.use(requireAuth);
 
 /**
- * Every mutating route takes a choice, never a result. The body is a node id or
- * an option id and nothing else — there is no shape in which the client can
- * report having won a fight.
+ * Every mutating route takes a choice, never a result — a node id, an option
+ * id, a move id. There is no shape in which the client can report having won a
+ * fight: the server resolves each turn itself from the stored state.
  */
 
 function fail(res: import("express").Response, err: unknown) {
@@ -27,20 +29,25 @@ function fail(res: import("express").Response, err: unknown) {
 runRouter.get("/", async (req, res) => {
   const run = await getActiveRun(req.userId!);
   res.json({
-    config: { teamSize: RUN_CONFIG.teamSize, rows: RUN_CONFIG.rows },
+    config: { teamSize: RUN_CONFIG.teamSize },
+    stages: await stageBoard(req.userId!),
     run: run ? describeRun(run) : null,
     history: await recentRuns(req.userId!),
   });
 });
 
 runRouter.post("/start", async (req, res) => {
-  const { unitIds } = req.body as { unitIds?: unknown };
+  const { unitIds, stageId } = req.body as { unitIds?: unknown; stageId?: unknown };
   if (!Array.isArray(unitIds) || unitIds.some((id) => typeof id !== "string")) {
     res.status(400).json({ error: "unitIds doit être une liste d'identifiants" });
     return;
   }
+  if (stageId !== undefined && typeof stageId !== "string") {
+    res.status(400).json({ error: "stageId invalide" });
+    return;
+  }
   try {
-    const run = await startRun(req.userId!, unitIds as string[]);
+    const run = await startRun(req.userId!, unitIds as string[], stageId as string | undefined);
     res.json({ run: describeRun(run), awarded: run.awarded });
   } catch (err) {
     fail(res, err);
@@ -55,6 +62,28 @@ runRouter.post("/enter", async (req, res) => {
   }
   try {
     const run = await enterNode(req.userId!, nodeId);
+    res.json({ run: describeRun(run), awarded: run.awarded });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+/** One turn of the current fight: a move, or sending someone else out. */
+runRouter.post("/battle", async (req, res) => {
+  const body = req.body as { kind?: unknown; moveId?: unknown; memberKey?: unknown };
+
+  let action: BattleAction;
+  if (body.kind === "move" && typeof body.moveId === "string") {
+    action = { kind: "move", moveId: body.moveId };
+  } else if (body.kind === "switch" && typeof body.memberKey === "string") {
+    action = { kind: "switch", memberKey: body.memberKey };
+  } else {
+    res.status(400).json({ error: "Action de combat invalide" });
+    return;
+  }
+
+  try {
+    const run = await battleTurn(req.userId!, action);
     res.json({ run: describeRun(run), awarded: run.awarded });
   } catch (err) {
     fail(res, err);

@@ -1,6 +1,7 @@
+import type { EggType } from "./data/eggs.js";
 import { SLOT_OCCUPANT_WEIGHTS } from "./data/market.js";
-import { POKEMON_BY_ID, SLOTS_BY_TYPE } from "./pokemon-data.js";
-import type { PokemonSpecies, Rarity, ResourceType, SlotType, StarTierInfo } from "./types.js";
+import { POKEMON_BY_ID, POKEMON_SPECIES, SLOTS_BY_TYPE } from "./pokemon-data.js";
+import { RARITY_ORDER, type PokemonSpecies, type Rarity, type ResourceType, type SlotType, type StarTierInfo } from "./types.js";
 
 /** Duplicate counts required to reach star 1, 2, 3, 4 respectively (2/2, 4/4, 8/8, 16/16). */
 export const STAR_THRESHOLDS = [2, 4, 8, 16] as const;
@@ -25,6 +26,55 @@ const RARITY_WEIGHTS: Record<Rarity, number> = {
   epic: 9,
   legendary: 1,
 };
+
+/** Species an egg can produce: its slot filter, if it has one. */
+export function eggPool(egg: EggType): PokemonSpecies[] {
+  const pool = egg.slots
+    ? POKEMON_SPECIES.filter((species) => species.trait && egg.slots!.includes(species.trait.slot))
+    : [...POKEMON_SPECIES];
+  // A weight of zero means "never", so a species whose whole rarity is barred
+  // must not be able to slip through as the fallback pick.
+  return pool.filter((species) => (egg.weights[species.rarity] ?? 0) > 0);
+}
+
+/**
+ * Rolls one species from an egg.
+ *
+ * Rarity is drawn first, then a species inside it — that way an egg's published
+ * odds are exactly its odds, instead of drifting with how many species happen
+ * to sit in each rarity.
+ */
+export function rollEggSpecies(egg: EggType, rng: () => number = Math.random): PokemonSpecies {
+  const pool = eggPool(egg);
+  if (pool.length === 0) throw new Error(`L'œuf « ${egg.name} » ne peut rien produire`);
+
+  const rarities = [...new Set(pool.map((species) => species.rarity))];
+  const total = rarities.reduce((sum, rarity) => sum + (egg.weights[rarity] ?? 0), 0);
+
+  let roll = rng() * total;
+  let chosen: Rarity = rarities[rarities.length - 1];
+  for (const rarity of rarities) {
+    roll -= egg.weights[rarity] ?? 0;
+    if (roll <= 0) {
+      chosen = rarity;
+      break;
+    }
+  }
+
+  const bracket = pool.filter((species) => species.rarity === chosen);
+  return bracket[Math.min(bracket.length - 1, Math.floor(rng() * bracket.length))];
+}
+
+/** The published odds, as percentages, for the egg card. */
+export function eggOdds(egg: EggType): { rarity: Rarity; percent: number }[] {
+  const pool = eggPool(egg);
+  const rarities = [...new Set(pool.map((species) => species.rarity))];
+  const total = rarities.reduce((sum, rarity) => sum + (egg.weights[rarity] ?? 0), 0);
+  return RARITY_ORDER.filter((rarity) => rarities.includes(rarity)).map((rarity) => ({
+    rarity,
+    percent: total === 0 ? 0 : Math.round(((egg.weights[rarity] ?? 0) / total) * 1000) / 10,
+  }));
+}
 
 /** How many total duplicates (including the first copy) a Pokemon owns, given its star tier progress. */
 export function starTierForCount(duplicateCount: number): StarTierInfo {

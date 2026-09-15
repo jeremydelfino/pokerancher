@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { resolveTraits } from "@pokerancher/shared";
 import type { OwnedPokemon } from "../api/client.js";
@@ -7,6 +6,7 @@ import { Frame } from "./Frame.js";
 import { ResourceIcon, resourceLabel } from "./ResourceIcon.js";
 import { Stars } from "./Stars.js";
 import { TraitChips } from "./TraitChip.js";
+import { useDialog } from "../hooks/useDialog.js";
 
 interface Props {
   slotLabel: string;
@@ -26,13 +26,7 @@ export function AssignSheet({
   onPick,
   onClose,
 }: Props) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useDialog(onClose);
 
   return (
     <>

@@ -32,8 +32,34 @@ const BRAND = [
 
 const CHEVRON = ["i...i", ".i.i.", "..i.."];
 
-export function BrandMark({ size = 28 }: { size?: number }) {
-  return <PixelIcon art={BRAND} palette={MARK} size={size} className="brand-mark" />;
+/** Where the game's own logo lives once it is dropped in (see public/assets). */
+const LOGO_URL = "/assets/logo_blank.png";
+
+/**
+ * The game's mark.
+ *
+ * Prefers the real logo, falls back to the pixel egg-and-sprout if the file is
+ * not there — so the site works before the asset is imported, and picks it up
+ * without a code change afterwards.
+ */
+export function BrandMark({ size = 34 }: { size?: number }) {
+  const [missing, setMissing] = useState(false);
+
+  if (missing) {
+    return <PixelIcon art={BRAND} palette={MARK} size={size} className="brand-mark" />;
+  }
+
+  return (
+    <img
+      className="brand-mark brand-logo"
+      src={LOGO_URL}
+      width={size}
+      height={size}
+      alt=""
+      draggable={false}
+      onError={() => setMissing(true)}
+    />
+  );
 }
 
 export function TopBar({ inventory }: { inventory?: Record<string, number> }) {

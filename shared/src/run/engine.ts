@@ -1,12 +1,16 @@
+import { resolveBattleTurn } from "../battle/engine.js";
+import { makeBattler } from "../battle/stats.js";
+import type { BattleAction, BattleState, Battler } from "../battle/types.js";
 import { RUN_EVENTS } from "../data/events.js";
 import { RELICS, RELIC_IDS } from "../data/relics.js";
 import { REWARD_TEMPLATES, type RewardTemplate } from "../data/rewards.js";
 import { RUN_CONFIG } from "../data/run-config.js";
+import { FIRST_STAGE, STAGE_BY_ID, type StageDefinition } from "../data/stages.js";
 import { EffectBag } from "../traits/effects.js";
 import { resolveSynergies, synergyEffects } from "../traits/engine.js";
 import type { SynergyState } from "../traits/types.js";
+import { starTierForCount } from "../game-logic.js";
 import type { ResourceType } from "../types.js";
-import { baseStatsFor, memberMaxHp, resolveCombat, rollEnemy } from "./combat.js";
 import { generateRunMap, reachableFrom } from "./map.js";
 import { makeRng, pick, pickWeighted, shuffle, subSeed } from "./rng.js";
 import type {
@@ -15,7 +19,9 @@ import type {
   RunChoiceOption,
   RunMap,
   RunNode,
+  RunNodeType,
   RunState,
+  RunTeamMember,
 } from "./types.js";
 
 /**
@@ -57,12 +63,17 @@ export function lootIsEmpty(bag: LootBag): boolean {
 
 /* --- Derived state -------------------------------------------------------- */
 
+export function runStage(state: RunState): StageDefinition {
+  return STAGE_BY_ID[state.stageId] ?? STAGE_BY_ID[FIRST_STAGE];
+}
+
 export function runMap(state: RunState): RunMap {
-  return generateRunMap(state.seed);
+  return generateRunMap(state.seed, runStage(state).rows);
 }
 
 export function availableNodes(state: RunState): RunNode[] {
-  if (state.status !== "active" || state.pending.length > 0) return [];
+  // A fight in progress blocks the map as firmly as a pending choice does.
+  if (state.status !== "active" || state.pending.length > 0 || state.battle) return [];
   return reachableFrom(runMap(state), state.currentNodeId);
 }
 
@@ -92,21 +103,67 @@ export interface RunRecruit {
   duplicateCount: number;
 }
 
-export function startRun(seed: number, recruits: readonly RunRecruit[]): RunState {
-  const team = recruits.slice(0, RUN_CONFIG.teamSize).map((recruit) => {
-    const stats = baseStatsFor(recruit.speciesId, recruit.duplicateCount);
+/**
+ * Re-applies the effect bag to every member from their *base* stats.
+ *
+ * Recomputing from the live values would compound: a +25 PV relic would add 25
+ * again on the next pickup. Anything newly gained above the old ceiling is also
+ * handed over as real hit points here, once, so a "+PV" relic does something on
+ * the turn you take it rather than only raising a number.
+ */
+export function refreshTeamStats(team: readonly RunTeamMember[], bag: EffectBag): RunTeamMember[] {
+  return team.map((member) => {
+    const maxHp = Math.max(1, Math.round(bag.apply(member.baseMaxHp, "combat_hp")));
+    const attack = Math.max(1, Math.round(bag.apply(member.baseAttack, "combat_attack")));
+    const gained = Math.max(0, maxHp - member.maxHp);
+
     return {
-      unitId: recruit.unitId,
-      speciesId: recruit.speciesId,
-      hp: stats.hp,
-      maxHp: stats.hp,
-      attack: stats.attack,
+      ...member,
+      maxHp,
+      attack,
+      hp: member.hp > 0 ? Math.min(maxHp, member.hp + gained) : 0,
+    };
+  });
+}
+
+/**
+ * The level your Pokémon fight at.
+ *
+ * Tied to the stage rather than to the Pokémon, so a fresh legendary is not
+ * unusable in stage 1 and a starter is not hopeless in stage 10. What the
+ * collection actually buys is the *tier* (a better stat line at the same level)
+ * and the star bonus below.
+ */
+export function recruitLevel(stage: StageDefinition, duplicateCount: number): number {
+  const { stars } = starTierForCount(duplicateCount);
+  return stage.level + RUN_CONFIG.playerLevelEdge + stars * RUN_CONFIG.starLevelBonus;
+}
+
+export function startRun(
+  seed: number,
+  recruits: readonly RunRecruit[],
+  stageId: string = FIRST_STAGE
+): RunState {
+  const stage = STAGE_BY_ID[stageId];
+  if (!stage) throw new Error("Cette expédition n'existe pas");
+
+  const team: RunTeamMember[] = recruits.slice(0, RUN_CONFIG.teamSize).map((recruit) => {
+    const battler = makeBattler({
+      key: recruit.unitId,
+      id: recruit.speciesId,
+      level: recruitLevel(stage, recruit.duplicateCount),
+    });
+    return {
+      ...battler,
       extraTraits: [] as string[],
+      baseMaxHp: battler.maxHp,
+      baseAttack: battler.attack,
     };
   });
 
-  return {
+  const state: RunState = {
     seed,
+    stageId,
     status: "active",
     path: [],
     currentNodeId: null,
@@ -116,7 +173,11 @@ export function startRun(seed: number, recruits: readonly RunRecruit[]): RunStat
     carried: emptyLoot(),
     pending: [],
     step: 0,
+    battle: null,
   };
+
+  // Synergies are live from the first step, not from the first relic.
+  return { ...state, team: refreshTeamStats(state.team, runEffectBag(state)) };
 }
 
 /* --- Rewards -------------------------------------------------------------- */
@@ -240,9 +301,6 @@ function secureChoice(state: RunState): PendingChoice {
 
 /* --- Node resolution ------------------------------------------------------ */
 
-function withHp(state: RunState, hp: number[]): RunState {
-  return { ...state, team: state.team.map((member, i) => ({ ...member, hp: Math.max(0, hp[i] ?? member.hp) })) };
-}
 
 function finish(state: RunState, status: "won" | "lost" | "abandoned", message: string): RunState {
   const awarded =
@@ -261,6 +319,9 @@ function finish(state: RunState, status: "won" | "lost" | "abandoned", message: 
 export function enterNode(state: RunState, nodeId: string): RunState {
   if (state.status !== "active") throw new Error("Cette expédition est terminée");
   if (state.pending.length > 0) throw new Error("Un choix est encore en attente");
+  // Without this, a client could walk away from a fight it was losing — the
+  // map being empty in the UI is a courtesy, not a rule.
+  if (state.battle) throw new Error("Termine le combat avant de repartir");
 
   const legal = reachableFrom(runMap(state), state.currentNodeId);
   if (!legal.some((node) => node.id === nodeId)) {
@@ -277,26 +338,16 @@ export function enterNode(state: RunState, nodeId: string): RunState {
     step,
     currentNodeId: nodeId,
     path: [...state.path, nodeId],
-    lastCombat: undefined,
   };
 
   switch (node.type) {
+    // A fight no longer resolves here. It *opens* here: the player now owes the
+    // server one action per turn, and the node is only finished when the last
+    // foe falls.
     case "combat":
     case "elite":
-    case "boss": {
-      const enemy = rollEnemy(node.type, node.row, subSeed(seed, 1));
-      const result = resolveCombat(next.team, enemy, subSeed(seed, 2), bag);
-      next = { ...withHp(next, result.teamHp), lastCombat: result };
-
-      if (!result.victory) {
-        return finish(next, "lost", `${enemy.name} a eu raison de l'équipe.`);
-      }
-      if (node.type === "boss") {
-        return finish(next, "won", `${enemy.name} est tombé. L'expédition est un succès.`);
-      }
-      next = { ...next, pending: [rollRewardChoice(next, bag, subSeed(seed, 3))] };
-      break;
-    }
+    case "boss":
+      return { ...next, battle: openBattle(next, node, subSeed(seed, 1)) };
 
     case "reward":
       // Not a victory — nobody fought. Calling it one made a treasure chest read
@@ -312,26 +363,139 @@ export function enterNode(state: RunState, nodeId: string): RunState {
       next = { ...next, pending: [rollShopChoice(bag, subSeed(seed, 5))] };
       break;
 
-    case "rest": {
-      const healed = next.team.map((member) =>
-        Math.min(memberMaxHp(member, bag), member.hp + Math.round(memberMaxHp(member, bag) * 0.3))
-      );
-      next = withHp(next, healed);
+    case "rest":
+      next = healTeam(next, RUN_CONFIG.restHealRatio);
       break;
-    }
   }
 
-  if (RUN_CONFIG.secureAfter.includes(node.type)) {
-    next = { ...next, pending: [...next.pending, secureChoice(next)] };
-  }
-
-  return next;
+  return afterNode(next, node.type);
 }
 
-/* --- Choice resolution ---------------------------------------------------- */
+/** Queues the "bank or push on" decision the config asks for after this node. */
+function afterNode(state: RunState, type: RunNodeType): RunState {
+  if (!RUN_CONFIG.secureAfter.includes(type)) return state;
+  return { ...state, pending: [...state.pending, secureChoice(state)] };
+}
+
+function healTeam(state: RunState, ratio: number): RunState {
+  return {
+    ...state,
+    team: state.team.map((member) =>
+      member.hp > 0
+        ? { ...member, hp: Math.min(member.maxHp, member.hp + Math.round(member.maxHp * ratio)) }
+        : member
+    ),
+  };
+}
+
+/* --- Battles -------------------------------------------------------------- */
+
+/** Who you meet on this node, and at what level. */
+function rollFoes(state: RunState, node: RunNode, seed: number): Battler[] {
+  const stage = runStage(state);
+  const rng = makeRng(seed);
+
+  if (node.type === "boss") {
+    return [makeBattler({ key: `boss-${stage.boss}`, id: stage.boss, level: stage.bossLevel })];
+  }
+
+  const elite = node.type === "elite";
+  const level =
+    stage.level + node.row * RUN_CONFIG.depthLevels + (elite ? RUN_CONFIG.eliteLevelBonus : 0);
+  // A plain fight fields one fewer than the stage's headline count; the elite is
+  // what actually shows you all of them.
+  const count = Math.max(1, elite ? stage.foes : stage.foes - 1);
+
+  return Array.from({ length: count }, (_, i) => {
+    const id = pick(stage.wild, rng);
+    return makeBattler({
+      key: `foe-${node.id}-${i}`,
+      id,
+      level,
+      scale: elite ? RUN_CONFIG.eliteScale : 1,
+    });
+  });
+}
+
+function openBattle(state: RunState, node: RunNode, seed: number): BattleState {
+  const foes = rollFoes(state, node, seed);
+  const activeIndex = state.team.findIndex((member) => member.hp > 0);
+  const boss = node.type === "boss";
+
+  return {
+    team: state.team,
+    activeIndex: Math.max(0, activeIndex),
+    foes,
+    foeIndex: 0,
+    turn: 1,
+    log: [
+      {
+        kind: "send",
+        side: "foe",
+        text: boss
+          ? `${foes[0].name} bloque le passage !`
+          : foes.length > 1
+            ? `${foes.length} Pokémon sauvages surgissent !`
+            : `Un ${foes[0].name} sauvage apparaît !`,
+        activeHp: state.team[Math.max(0, activeIndex)]?.hp ?? 0,
+        foeHp: foes[0].hp,
+      },
+    ],
+    status: "active",
+    awaitingSwitch: false,
+    title: boss ? `Boss — ${foes[0].name}` : node.type === "elite" ? "Rencontre d'élite" : "Combat",
+    boss,
+  };
+}
+
+/**
+ * One turn of the current fight.
+ *
+ * The battle owns the team while it runs, so its outcome is written back onto
+ * the run here — hit points survive from one node to the next, which is what
+ * makes pushing deeper a real decision.
+ */
+export function playBattleTurn(state: RunState, action: BattleAction): RunState {
+  if (state.status !== "active") throw new Error("Cette expédition est terminée");
+  if (!state.battle) throw new Error("Aucun combat en cours");
+
+  const battle = resolveBattleTurn(state.battle, action, subSeed(state.seed, state.step, battleTurnSalt));
+  const team = state.team.map((member) => {
+    const fought = battle.team.find((b) => b.key === member.key);
+    return fought ? { ...member, ...fought, extraTraits: member.extraTraits } : member;
+  });
+
+  const next: RunState = { ...state, team, battle };
+  if (battle.status === "active") return next;
+
+  const node = runMap(state).byId[state.currentNodeId ?? ""];
+  const seed = subSeed(state.seed, state.step, 7);
+
+  if (battle.status === "lost") {
+    const winner = battle.foes[battle.foeIndex] ?? battle.foes[battle.foes.length - 1];
+    return finish({ ...next, battle: null }, "lost", `${winner.name} a eu raison de l'équipe.`);
+  }
+
+  if (node?.type === "boss") {
+    return finish({ ...next, battle: null }, "won", `${battle.foes[0].name} est vaincu. L'expédition est un succès.`);
+  }
+
+  const bag = runEffectBag(next);
+  const rewarded: RunState = {
+    ...next,
+    battle: null,
+    pending: [rollRewardChoice(next, bag, subSeed(seed, 3))],
+  };
+
+  return afterNode(rewarded, node?.type ?? "combat");
+}
+
+/** Salt keeping battle rolls out of the node-resolution seed space. */
+const battleTurnSalt = 0x42_54_4c_00;
+
+/* --- Choice resolution ---/* --- Choice resolution ---------------------------------------------------- */
 
 function applyOption(state: RunState, option: RunChoiceOption): RunState {
-  const before = runEffectBag(state);
   let next = { ...state };
 
   if (option.grantLoot) next = { ...next, carried: mergeLoot(next.carried, option.grantLoot) };
@@ -362,31 +526,22 @@ function applyOption(state: RunState, option: RunChoiceOption): RunState {
 
   // Anything that raised the hit-point ceiling hands the difference over as
   // real hit points, once, here. Raising only the ceiling would make a "+25 PV"
-  // relic do nothing on the turn you pick it up, and applying the bonus inside
-  // combat instead would re-grant it at every fight.
-  const after = runEffectBag(next);
-  next = {
-    ...next,
-    team: next.team.map((member) => {
-      const gained = memberMaxHp(member, after) - memberMaxHp(member, before);
-      return gained > 0 && member.hp > 0 ? { ...member, hp: member.hp + gained } : member;
-    }),
-  };
+  // relic do nothing on the turn you pick it up, and re-deriving from the live
+  // stats instead of the base ones would compound it at every pickup.
+  next = { ...next, team: refreshTeamStats(next.team, runEffectBag(next)) };
 
   if (option.healPercent) {
-    next = withHp(
-      next,
-      next.team.map((member) =>
-        Math.min(memberMaxHp(member, after), member.hp + Math.round(memberMaxHp(member, after) * option.healPercent!))
-      )
-    );
+    next = healTeam(next, option.healPercent);
   }
 
   if (option.damagePercent) {
-    next = withHp(
-      next,
-      next.team.map((member) => member.hp - Math.round(memberMaxHp(member, after) * option.damagePercent!))
-    );
+    next = {
+      ...next,
+      team: next.team.map((member) => ({
+        ...member,
+        hp: Math.max(0, member.hp - Math.round(member.maxHp * option.damagePercent!)),
+      })),
+    };
   }
 
   return next;

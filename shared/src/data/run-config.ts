@@ -10,8 +10,8 @@ export const RUN_CONFIG = {
   /** How many Pokémon the player may take. At least one, at most this. */
   teamSize: 6,
 
-  /** Rows between the entry and the boss, boss excluded. */
-  rows: 8,
+  /** Default rows between the entry and the boss. Stages override it. */
+  rows: 8 as number,
 
   /** Each row gets between these many nodes, inclusive. */
   minWidth: 2,
@@ -51,15 +51,21 @@ export const RUN_CONFIG = {
   /** Fraction of carried (unbanked) loot kept after a defeat. */
   defeatKeepRatio: 0,
 
-  /** Base hit points and attack per team member, before star tier and traits. */
-  baseHp: 40,
-  baseAttack: 9,
+  /** Levels your team starts above the stage's wild Pokémon. */
+  playerLevelEdge: 2,
 
-  /** Star tier multiplies these, reusing the merge progression already in game-logic. */
-  starStatWeight: 1,
+  /** Extra levels per merge star, so duplicates keep mattering. */
+  starLevelBonus: 2,
 
-  /** How much each row past the first hardens enemies. */
-  depthScaling: 0.18,
+  /** How many levels each row past the first adds to what lives on it. */
+  depthLevels: 1,
+
+  /** Extra levels and stat scale an elite encounter gets over a plain one. */
+  eliteLevelBonus: 3,
+  eliteScale: 1.1,
+
+  /** Fraction of max hit points a camp restores. */
+  restHealRatio: 0.3,
 
   /** How many options a post-combat reward screen shows. */
   rewardOptions: 3,

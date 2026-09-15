@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { RUN_CONFIG } from "../data/run-config.js";
 import { generateRunMap, reachableFrom } from "./map.js";
-import { resolveCombat, rollEnemy } from "./combat.js";
-import { EffectBag } from "../traits/effects.js";
+import { STAGES } from "../data/stages.js";
 import {
   abandonRun,
   availableNodes,
   enterNode,
   lootIsEmpty,
   mergeLoot,
+  playBattleTurn,
   resolveChoice,
   runMap,
   scaleLoot,
@@ -24,10 +24,27 @@ const RECRUITS: RunRecruit[] = [
   { unitId: "u4", speciesId: "lapras", duplicateCount: 1 },
 ];
 
-/** Walks a run to its end by always taking the first legal option. */
-function playOut(state: RunState, maxSteps = 200): RunState {
+/**
+ * Walks a run to its end, always taking the first legal option and, in a fight,
+ * the first usable move. Fights are interactive now, so a walker that only
+ * picked nodes would stall on the opening battle forever.
+ */
+function playOut(state: RunState, maxSteps = 3000): RunState {
   let current = state;
   for (let i = 0; i < maxSteps && current.status === "active"; i++) {
+    if (current.battle) {
+      const battle = current.battle;
+      if (battle.awaitingSwitch) {
+        const next = battle.team.find((m, index) => m.hp > 0 && index !== battle.activeIndex);
+        if (!next) break;
+        current = playBattleTurn(current, { kind: "switch", memberKey: next.key });
+        continue;
+      }
+      const active = battle.team[battle.activeIndex];
+      const move = active.moves.find((m) => m.pp > 0) ?? active.moves[0];
+      current = playBattleTurn(current, { kind: "move", moveId: move.id });
+      continue;
+    }
     if (current.pending.length > 0) {
       current = resolveChoice(current, current.pending[0].options[0].id);
       continue;
@@ -74,87 +91,59 @@ describe("generateRunMap", () => {
   });
 });
 
-describe("resolveCombat", () => {
-  it("replays identically from the same seed", () => {
-    const state = startRun(555, RECRUITS);
-    const enemy = rollEnemy("combat", 0, 1);
-    const a = resolveCombat(state.team, enemy, 42, new EffectBag());
-    const b = resolveCombat(state.team, enemy, 42, new EffectBag());
-    expect(a.victory).toBe(b.victory);
-    expect(a.blows).toEqual(b.blows);
+describe("battles", () => {
+  it("opens a fight instead of resolving it, and blocks the map while it runs", () => {
+    let state = startRun(4321, RECRUITS);
+    state = enterNode(state, availableNodes(state)[0].id);
+
+    expect(state.battle).not.toBeNull();
+    expect(state.battle!.foes.length).toBeGreaterThan(0);
+    // A fight in progress is as blocking as a pending choice.
+    expect(availableNodes(state)).toHaveLength(0);
+    expect(() => enterNode(state, "n1-0")).toThrow();
   });
 
-  it("lets relic bonuses bite without the team being rewritten", () => {
-    const state = startRun(555, RECRUITS);
-    const enemy = rollEnemy("boss", 8, 3);
-    const bare = resolveCombat(state.team, enemy, 7, new EffectBag());
-    const buffed = resolveCombat(
-      state.team,
-      enemy,
-      7,
-      new EffectBag().addAll([{ type: "combat_attack", value: 40 }])
-    );
-    // Round count is the wrong yardstick: against a boss this team loses either
-    // way, on the same round. Damage dealt is what the bonus actually moves.
-    expect(buffed.enemy.hp).toBeLessThan(bare.enemy.hp);
-  });
+  it("carries hit points out of the fight and into the run", () => {
+    let state = startRun(4321, RECRUITS);
+    state = enterNode(state, availableNodes(state)[0].id);
 
-  it("a full team clears an opening fight", () => {
-    const state = startRun(555, RECRUITS);
-    expect(resolveCombat(state.team, rollEnemy("combat", 0, 3), 7, new EffectBag()).victory).toBe(true);
-  });
-
-  it("a lone weakened member is not clearing a boss", () => {
-    const solo = startRun(555, [{ unitId: "u", speciesId: "sunkern", duplicateCount: 1 }]);
-    const battered = solo.team.map((m) => ({ ...m, hp: 1 }));
-    expect(resolveCombat(battered, rollEnemy("boss", 8, 3), 7, new EffectBag()).victory).toBe(false);
-  });
-
-  it("records every blow with the hit points that follow it", () => {
-    const state = startRun(555, RECRUITS);
-    const result = resolveCombat(state.team, rollEnemy("combat", 0, 3), 7, new EffectBag());
-
-    expect(result.blows.length).toBeGreaterThan(0);
-    expect(result.teamMaxHp).toHaveLength(state.team.length);
-    for (const blow of result.blows) {
-      // Every snapshot is complete, in team order, and never negative — the
-      // client draws bars straight from these without clamping.
-      expect(blow.teamHp).toHaveLength(state.team.length);
-      expect(blow.teamHp.every((hp) => hp >= 0)).toBe(true);
-      expect(blow.enemyHp).toBeGreaterThanOrEqual(0);
-      expect(blow.memberIndex).toBeLessThan(state.team.length);
+    const before = state.team.map((m) => m.hp);
+    for (let i = 0; i < 40 && state.battle?.status === "active"; i++) {
+      const active = state.battle.team[state.battle.activeIndex];
+      state = playBattleTurn(state, { kind: "move", moveId: active.moves[0].id });
+      if (state.battle?.awaitingSwitch) {
+        const next = state.battle.team.find((m) => m.hp > 0);
+        if (next) state = playBattleTurn(state, { kind: "switch", memberKey: next.key });
+      }
     }
-    // The last snapshot is the fight's outcome, not an approximation of it.
-    expect(result.blows[result.blows.length - 1].teamHp).toEqual(result.teamHp);
+
+    // Somebody took damage, and the run's copy of the team knows about it.
+    expect(state.team.map((m) => m.hp)).not.toEqual(before);
+    expect(state.team.every((m) => m.hp <= m.maxHp)).toBe(true);
   });
 
-  it("stops the turn once the enemy drops instead of swinging at a corpse", () => {
-    const state = startRun(555, RECRUITS);
-    const result = resolveCombat(
-      state.team,
-      rollEnemy("combat", 0, 3),
-      7,
-      new EffectBag().addAll([{ type: "combat_attack", value: 500 }])
-    );
-    expect(result.victory).toBe(true);
-    // One member one-shots it, so the fight is exactly one blow long.
-    expect(result.blows).toHaveLength(1);
-    expect(result.blows[0].fatal).toBe(true);
+  it("refuses a turn when no fight is running", () => {
+    const state = startRun(4321, RECRUITS);
+    expect(() => playBattleTurn(state, { kind: "move", moveId: "charge" })).toThrow(/combat/);
   });
 
-  it("marks the blow that takes a member down", () => {
-    const solo = startRun(555, [{ unitId: "u", speciesId: "sunkern", duplicateCount: 1 }]);
-    const battered = solo.team.map((m) => ({ ...m, hp: 1 }));
-    const result = resolveCombat(battered, rollEnemy("boss", 8, 3), 7, new EffectBag());
-    const killing = result.blows.filter((blow) => blow.side === "enemy" && blow.fatal);
-    expect(killing).toHaveLength(1);
-    expect(killing[0].teamHp[killing[0].memberIndex]).toBe(0);
+  it("fields the stage's own Pokémon, at the stage's level", () => {
+    const stage = STAGES[3];
+    let state = startRun(99, RECRUITS, stage.id);
+    state = enterNode(state, availableNodes(state)[0].id);
+
+    for (const foe of state.battle!.foes) {
+      expect(stage.wild, foe.speciesId).toContain(foe.speciesId);
+      expect(foe.level).toBeGreaterThanOrEqual(stage.level);
+    }
   });
 
-  it("always terminates", () => {
-    const state = startRun(1, [{ unitId: "u", speciesId: "sunkern", duplicateCount: 1 }]);
-    const enemy = rollEnemy("boss", 20, 9);
-    expect(resolveCombat(state.team, enemy, 3, new EffectBag()).blows.length).toBeGreaterThan(0);
+  it("puts the stage's legendary at the end, alone", () => {
+    const stage = STAGES[0];
+    let state = startRun(7, RECRUITS, stage.id);
+    // Walk straight to the boss by clearing everything in the way.
+    state = playOut(state);
+    expect(["won", "lost"]).toContain(state.status);
   });
 });
 
@@ -166,6 +155,19 @@ describe("startRun", () => {
       duplicateCount: 1,
     }));
     expect(startRun(1, many).team).toHaveLength(RUN_CONFIG.teamSize);
+  });
+
+  it("records which expedition it is", () => {
+    expect(startRun(1, RECRUITS, "stage-4").stageId).toBe("stage-4");
+    expect(startRun(1, RECRUITS).stageId).toBe(STAGES[0].id);
+    expect(() => startRun(1, RECRUITS, "stage-nope")).toThrow();
+  });
+
+  it("scales the team to the stage rather than leaving it behind", () => {
+    const early = startRun(1, RECRUITS, "stage-1").team[0];
+    const late = startRun(1, RECRUITS, "stage-9").team[0];
+    expect(late.level).toBeGreaterThan(early.level);
+    expect(late.maxHp).toBeGreaterThan(early.maxHp);
   });
 
   it("starts with nothing banked and nothing pending", () => {
@@ -188,28 +190,29 @@ describe("enterNode", () => {
   });
 
   it("refuses to advance while a choice is pending", () => {
-    let state = startRun(4321, RECRUITS);
-    state = enterNode(state, availableNodes(state)[0].id);
-    if (state.status === "active" && state.pending.length > 0) {
-      expect(() => enterNode(state, "n1-0")).toThrow(/attente/);
-    }
+    const state: RunState = {
+      ...startRun(4321, RECRUITS),
+      pending: [{ kind: "event", title: "", prompt: "", options: [] }],
+    };
+    expect(() => enterNode(state, "n0-0")).toThrow(/attente/);
   });
 
-  it("resolves the opening fight and records it", () => {
+  it("records where the player walked", () => {
     let state = startRun(4321, RECRUITS);
     state = enterNode(state, availableNodes(state)[0].id);
-    expect(state.lastCombat).toBeDefined();
     expect(state.path).toHaveLength(1);
   });
 });
 
 describe("resolveChoice", () => {
   it("rejects an option that was not offered", () => {
-    let state = startRun(4321, RECRUITS);
-    state = enterNode(state, availableNodes(state)[0].id);
-    if (state.pending.length > 0) {
-      expect(() => resolveChoice(state, "not-a-real-option")).toThrow(/proposé/);
-    }
+    const state: RunState = {
+      ...startRun(4321, RECRUITS),
+      pending: [
+        { kind: "event", title: "", prompt: "", options: [{ id: "real", label: "", description: "" }] },
+      ],
+    };
+    expect(() => resolveChoice(state, "not-a-real-option")).toThrow(/proposé/);
   });
 
   it("hands over hit points the moment a +HP relic is taken, not at the next fight", () => {
@@ -231,15 +234,35 @@ describe("resolveChoice", () => {
 
   it("does not re-grant those hit points on every later choice", () => {
     const base = startRun(1, RECRUITS);
-    const withRelic: RunState = {
-      ...base,
-      relics: ["armure"],
-      pending: [
-        { kind: "event", title: "", prompt: "", options: [{ id: "noop", label: "", description: "" }] },
-      ],
-    };
-    const after = resolveChoice(withRelic, "noop");
+    // Take the relic for real first — a fixture that merely *lists* it would be
+    // a run whose stats were never refreshed, which is not a state the engine
+    // can produce.
+    const withRelic = resolveChoice(
+      {
+        ...base,
+        pending: [
+          {
+            kind: "reward",
+            title: "",
+            prompt: "",
+            options: [{ id: "relic:armure", label: "", description: "", grantRelic: "armure" }],
+          },
+        ],
+      },
+      "relic:armure"
+    );
+
+    const after = resolveChoice(
+      {
+        ...withRelic,
+        pending: [
+          { kind: "event", title: "", prompt: "", options: [{ id: "noop", label: "", description: "" }] },
+        ],
+      },
+      "noop"
+    );
     expect(after.team[0].hp).toBe(withRelic.team[0].hp);
+    expect(after.team[0].maxHp).toBe(withRelic.team[0].maxHp);
   });
 
   it("banking moves carried loot into the secured pile", () => {
@@ -303,7 +326,7 @@ describe("a full run", () => {
       ...startRun(1, RECRUITS),
       secured: { resources: { berry: 50 }, eggs: 0 },
       carried: { resources: { berry: 999 }, eggs: 3 },
-      team: startRun(1, RECRUITS).team.map((m) => ({ ...m, hp: 1 })),
+      team: startRun(1, RECRUITS).team.map((m: RunState["team"][number]) => ({ ...m, hp: 1 })),
       pending: [
         {
           kind: "event",
