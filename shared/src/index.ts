@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./pokemon-data.js";
 export * from "./game-logic.js";
 export * from "./market.js";
+export * from "./progression.js";
 
 // Traits, synergies, activity stars
 export * from "./traits/types.js";
@@ -23,7 +24,9 @@ export * from "./run/engine.js";
 export * from "./data/traits.js";
 export * from "./data/types-chart.js";
 export * from "./data/moves.js";
+export * from "./data/species-battle.js";
 export * from "./data/battlers.js";
+export * from "./data/levelling.js";
 export * from "./data/battle-config.js";
 export * from "./data/stages.js";
 export * from "./data/eggs.js";

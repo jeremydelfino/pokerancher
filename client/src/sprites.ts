@@ -27,23 +27,26 @@ const LAST_ANIMATED_DEX = 649;
 
 export const spriteSource: SpriteSource = SOURCE;
 
-export function spriteUrl(dex: number, back = false): string | null {
+export function spriteUrl(dex: number, back = false, shiny = false): string | null {
   if (!dex) return null;
 
   switch (SOURCE) {
     case "pokeapi": {
       // A battle wants the back sprite for your own Pokémon; only the animated
       // Gen-V set has one, so anything past it falls back to the front art.
+      // The sprite set nests the same way at every level: back/, then shiny/.
+      const facing = [back ? "back" : null, shiny ? "shiny" : null].filter(Boolean).join("/");
       if (dex <= LAST_ANIMATED_DEX) {
-        const facing = back ? "animated/back" : "animated";
-        return `${POKEAPI_ROOT}/versions/generation-v/black-white/${facing}/${dex}.gif`;
+        const path = ["animated", facing].filter(Boolean).join("/");
+        return `${POKEAPI_ROOT}/versions/generation-v/black-white/${path}/${dex}.gif`;
       }
-      return back ? `${POKEAPI_ROOT}/back/${dex}.png` : `${POKEAPI_ROOT}/${dex}.png`;
+      return `${POKEAPI_ROOT}/${facing ? `${facing}/` : ""}${dex}.png`;
     }
-    case "custom":
-      return CUSTOM_BASE
-        ? `${CUSTOM_BASE.replace(/\/$/, "")}/${back ? "back/" : ""}${dex}.png`
-        : null;
+    case "custom": {
+      if (!CUSTOM_BASE) return null;
+      const facing = [back ? "back" : null, shiny ? "shiny" : null].filter(Boolean).join("/");
+      return `${CUSTOM_BASE.replace(/\/$/, "")}/${facing ? `${facing}/` : ""}${dex}.png`;
+    }
     default:
       return null;
   }

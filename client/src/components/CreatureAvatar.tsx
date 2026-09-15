@@ -79,15 +79,16 @@ interface Props {
   /** Falls back to the species' own rarity when omitted. */
   rarity?: string;
   still?: boolean;
+  shiny?: boolean;
   className?: string;
 }
 
-export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, className }: Props) {
+export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, shiny = false, className }: Props) {
   const species = POKEMON_BY_ID[speciesId];
   const resolvedRarity = rarity ?? species?.rarity ?? "common";
   const aura = RARITY_AURA[resolvedRarity];
 
-  const url = species ? spriteUrl(species.dex) : null;
+  const url = species ? spriteUrl(species.dex, false, shiny) : null;
   const [spriteBroken, setSpriteBroken] = useState(false);
   const showSprite = url !== null && !spriteBroken;
   // Animated sprites already breathe on their own; stacking the CSS bob looks jittery.
@@ -95,7 +96,7 @@ export function CreatureAvatar({ speciesId, size = 88, rarity, still = false, cl
 
   return (
     <span
-      className={`creature ${frozen ? "creature-still" : ""} ${className ?? ""}`}
+      className={`creature ${frozen ? "creature-still" : ""} ${shiny ? "creature-shiny" : ""} ${className ?? ""}`}
       style={{ width: size, height: size }}
     >
       {aura && <span className="creature-aura" style={{ ["--aura-color" as string]: aura }} />}

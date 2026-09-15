@@ -19,6 +19,13 @@ export const BATTLE_CONFIG = {
   /** How much each tier past the first adds, as a fraction of the base. */
   tierStep: 0.28,
 
+  /**
+   * How far `role` tilts the stat line. An offensive species multiplies its
+   * attack by this and divides its bulk by it; a passive one does the reverse.
+   * At 1 the role stops meaning anything.
+   */
+  roleTilt: 1.18,
+
   /** Same-type attack bonus. */
   stab: 1.5,
 

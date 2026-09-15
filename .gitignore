@@ -9,3 +9,6 @@ build/
 server/prisma/dev.db
 server/generated/
 .turbo/
+
+# Jeton de session généré par les vérifications locales — jamais versionné.
+.smoke-token

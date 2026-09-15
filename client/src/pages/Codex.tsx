@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RARITY_ORDER, TRAIT_DEFINITIONS } from "@pokerancher/shared";
 import { api, type CodexEntry, type CodexResponse } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
 import { CreatureAvatar } from "../components/CreatureAvatar.js";
 import { Frame } from "../components/Frame.js";
 import { RARITY_LABEL, Stars } from "../components/Stars.js";
+import { TypeBadges } from "../components/TypeBadge.js";
+import { PokemonSheet } from "../components/PokemonSheet.js";
 import { TopBar } from "../components/TopBar.js";
 import { TraitChips } from "../components/TraitChip.js";
 import { useToast } from "../components/Toast.js";
@@ -66,16 +68,18 @@ export function Codex() {
   const [trait, setTrait] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("dex");
   const [ownedOnly, setOwnedOnly] = useState(false);
+  const [openUnit, setOpenUnit] = useState<string | null>(null);
   const toast = useToast();
 
+  const load = useCallback(async () => {
+    const [entries, refuge] = await Promise.all([api.codex(), api.refugeState()]);
+    setCodex(entries);
+    setInventory(refuge.inventory);
+  }, []);
+
   useEffect(() => {
-    Promise.all([api.codex(), api.refugeState()])
-      .then(([entries, refuge]) => {
-        setCodex(entries);
-        setInventory(refuge.inventory);
-      })
-      .catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
-  }, [toast]);
+    load().catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
+  }, [load, toast]);
 
   const shown = useMemo(() => {
     if (!codex) return [] as CodexEntry[];
@@ -147,6 +151,10 @@ export function Codex() {
                 <p className="stat-line">
                   <span>Avec au moins 1 ⭐</span>
                   <strong>{codex.starred}</strong>
+                </p>
+                <p className="stat-line">
+                  <span>Chromatiques ✦</span>
+                  <strong>{codex.shinies}</strong>
                 </p>
               </Frame>
 
@@ -222,19 +230,34 @@ export function Codex() {
                 ) : (
                   <div className="codex-grid stagger">
                     {shown.map((entry) => (
-                      <article
+                      <button
                         key={entry.species.id}
                         className={`codex-entry rarity-${entry.species.rarity} ${
-                          entry.owned ? "" : "codex-locked"
+                          entry.owned ? "codex-open" : "codex-locked"
                         }`}
+                        disabled={!entry.owned}
+                        onClick={() => entry.unitId && setOpenUnit(entry.unitId)}
+                        title={entry.owned ? `Ouvrir la fiche de ${entry.species.name}` : undefined}
                       >
                         <span className="codex-dex">
                           Nº{String(entry.species.dex).padStart(3, "0")}
                         </span>
-                        <CreatureAvatar speciesId={entry.species.id} size={64} still />
+                        {entry.owned && <span className="codex-level">N.{entry.level}</span>}
+                        {entry.shinyUnlocked && (
+                          <span className="codex-shiny" title="Forme chromatique débloquée">
+                            ✦
+                          </span>
+                        )}
+                        <CreatureAvatar
+                          speciesId={entry.species.id}
+                          size={64}
+                          still
+                          shiny={entry.shiny}
+                        />
                         <strong className="codex-name">
                           {entry.owned ? entry.species.name : "???"}
                         </strong>
+                        <TypeBadges types={entry.types} size="sm" />
                         <span className="badge">
                           {RARITY_LABEL[entry.species.rarity] ?? entry.species.rarity}
                         </span>
@@ -247,7 +270,7 @@ export function Codex() {
                         ) : (
                           <span className="codex-meta muted">Jamais obtenu</span>
                         )}
-                      </article>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -256,6 +279,16 @@ export function Codex() {
           </div>
         )}
       </div>
+
+      {openUnit && (
+        <PokemonSheet
+          unitId={openUnit}
+          onClose={() => setOpenUnit(null)}
+          onChanged={() => {
+            load().catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
+          }}
+        />
+      )}
     </>
   );
 }

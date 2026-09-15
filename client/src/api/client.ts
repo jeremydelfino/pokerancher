@@ -2,6 +2,9 @@ import type {
   ActivityStars,
   BattleAction,
   EggType,
+  EvolutionOption,
+  KnownMove,
+  PokeType,
   MarketListing,
   PokemonSpecies,
   Rarity,
@@ -65,6 +68,27 @@ export const api = {
   ),
 
   pokemon: () => request<OwnedPokemon[]>("/pokemon"),
+  pokemonSheet: (unitId: string) => request<PokemonSheet>(`/pokemon/${unitId}`),
+  levelUp: (unitId: string, steps: number) =>
+    request<LevelUpResult>(`/pokemon/${unitId}/level`, {
+      method: "POST",
+      body: JSON.stringify({ steps }),
+    }),
+  setMoves: (unitId: string, moves: string[]) =>
+    request<{ unit: PokemonSheet }>(`/pokemon/${unitId}/moves`, {
+      method: "POST",
+      body: JSON.stringify({ moves }),
+    }),
+  evolve: (unitId: string, targetId: string) =>
+    request<EvolveResult>(`/pokemon/${unitId}/evolve`, {
+      method: "POST",
+      body: JSON.stringify({ targetId }),
+    }),
+  setShiny: (unitId: string, shiny: boolean) =>
+    request<{ unit: PokemonSheet }>(`/pokemon/${unitId}/shiny`, {
+      method: "POST",
+      body: JSON.stringify({ shiny }),
+    }),
 
   gachaInfo: () => request<{ eggs: EggCard[] }>("/gacha"),
   gachaRoll: (eggId: string) =>
@@ -131,9 +155,13 @@ export interface RunEnvelope {
 export interface CodexEntry {
   species: PokemonSpecies;
   traits: string[];
+  types: PokeType[];
   owned: boolean;
   unitId: string | null;
   quantity: number;
+  level: number;
+  shiny: boolean;
+  shinyUnlocked: boolean;
   starTier: StarTierInfo;
 }
 
@@ -148,6 +176,7 @@ export interface CodexResponse {
   total: number;
   duplicates: number;
   starred: number;
+  shinies: number;
   byRarity: (CodexCount & { rarity: string })[];
   byTrait: (CodexCount & { traitId: string })[];
 }
@@ -188,13 +217,62 @@ export interface OwnedPokemon {
   speciesId: string;
   species: PokemonSpecies;
   quantity: number;
+  level: number;
+  shiny: boolean;
+  shinyUnlocked: boolean;
+  moves: string[];
   starTier: StarTierInfo;
   busy: BusyState;
+}
+
+export interface ResourceCost {
+  resource: string;
+  amount: number;
+}
+
+/** Everything the codex sheet needs about one owned Pokémon. */
+export interface PokemonSheet {
+  id: string;
+  speciesId: string;
+  species: PokemonSpecies;
+  quantity: number;
+  level: number;
+  maxLevel: number;
+  shiny: boolean;
+  shinyUnlocked: boolean;
+  starTier: StarTierInfo;
+  learnset: KnownMove[];
+  moves: string[];
+  evolutions: EvolutionOption[];
+  levelCost: ResourceCost | null;
+  levelCostTen: ResourceCost | null;
+  /** How many of the next ten levels the purse can actually cover. */
+  affordable: number;
+  balance: ResourceCost;
+  busy: BusyState;
+}
+
+export interface LevelUpResult {
+  level: number;
+  gained: number;
+  spent: ResourceCost;
+  learned: string[];
+  unit: PokemonSheet;
+}
+
+export interface EvolveResult {
+  unitId: string;
+  speciesId: string;
+  merged: boolean;
+  from: string;
+  to: string;
+  unit: PokemonSheet;
 }
 
 export interface GachaResult {
   egg: { id: string; name: string };
   species: PokemonSpecies;
+  shiny: boolean;
   quantity: number;
   isNew: boolean;
   starTier: StarTierInfo;

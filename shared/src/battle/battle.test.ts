@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { MOVES } from "../data/moves.js";
 import { effectiveness } from "../data/types-chart.js";
 import { availableSwitches, chooseFoeMove, damageOf, resolveBattleTurn } from "./engine.js";
+import { activeMoves, knownMoves } from "../progression.js";
 import { makeBattler } from "./stats.js";
 import type { BattleState, Battler } from "./types.js";
 
-function battle(teamIds: string[], foeIds: string[], level = 20): BattleState {
+function battle(teamIds: string[], foeIds: string[], level = 20, foeLevel = level): BattleState {
   const team = teamIds.map((id, i) => makeBattler({ key: `t${i}`, id, level }));
-  const foes = foeIds.map((id, i) => makeBattler({ key: `f${i}`, id, level }));
+  const foes = foeIds.map((id, i) => makeBattler({ key: `f${i}`, id, level: foeLevel }));
   return {
     team,
     activeIndex: 0,
@@ -23,6 +24,9 @@ function battle(teamIds: string[], foeIds: string[], level = 20): BattleState {
 }
 
 const firstMove = (b: Battler) => b.moves[0].id;
+
+/** The first move that actually deals damage — a status move never ends a fight. */
+const hitMove = (b: Battler) => (b.moves.find((m) => (MOVES[m.id]?.power ?? 0) > 0) ?? b.moves[0]).id;
 
 describe("type chart", () => {
   it("doubles, halves and cancels the way the table says", () => {
@@ -42,7 +46,7 @@ describe("type chart", () => {
 
 describe("damage", () => {
   it("rewards the same type as the attacker and punishes a resisted hit", () => {
-    const attacker = makeBattler({ key: "a", id: "caninos", level: 30 });
+    const attacker = makeBattler({ key: "a", id: "growlithe", level: 30 });
     const grass = makeBattler({ key: "b", id: "sunkern", level: 30 });
     const water = makeBattler({ key: "c", id: "magikarp", level: 30 });
     const roll = () => 1;
@@ -62,7 +66,7 @@ describe("damage", () => {
   });
 
   it("deals nothing through an immunity", () => {
-    const zap = makeBattler({ key: "a", id: "voltorbe", level: 40 });
+    const zap = makeBattler({ key: "a", id: "wild_voltorb", level: 40 });
     const ground = makeBattler({ key: "b", id: "onix", level: 20 });
     expect(damageOf(zap, ground, MOVES.eclair, () => 1).damage).toBe(0);
   });
@@ -103,21 +107,21 @@ describe("a turn", () => {
   });
 
   it("sends the next foe out when one drops", () => {
-    const start = battle(["regirock"], ["chenipan", "rattata"], 60);
+    const start = battle(["regirock"], ["caterpie", "rattata"], 60);
     // Level 60 legendary against a level-60 caterpillar: this ends quickly.
     let state = start;
     for (let i = 0; i < 20 && state.foeIndex === 0 && state.status === "active"; i++) {
-      state = resolveBattleTurn(state, { kind: "move", moveId: firstMove(state.team[0]) }, 5 + i);
+      state = resolveBattleTurn(state, { kind: "move", moveId: hitMove(state.team[0]) }, 5 + i);
     }
     expect(state.foeIndex === 1 || state.status === "won").toBe(true);
   });
 
   it("asks for a replacement rather than ending the run when someone faints", () => {
-    const start = battle(["magikarp", "onix"], ["mewtwo"], 40);
+    const start = battle(["magikarp", "onix"], ["mewtwo"], 20, 60);
     start.team[0].hp = 1;
     let state = start;
     for (let i = 0; i < 12 && !state.awaitingSwitch && state.status === "active"; i++) {
-      state = resolveBattleTurn(state, { kind: "move", moveId: firstMove(state.team[0]) }, 20 + i);
+      state = resolveBattleTurn(state, { kind: "move", moveId: hitMove(state.team[0]) }, 20 + i);
     }
     expect(state.awaitingSwitch || state.status === "won").toBe(true);
     if (state.awaitingSwitch) {
@@ -130,9 +134,9 @@ describe("a turn", () => {
   });
 
   it("loses only when the last member is down", () => {
-    const start = battle(["magikarp"], ["mewtwo"], 50);
+    const start = battle(["magikarp"], ["mewtwo"], 20, 60);
     start.team[0].hp = 1;
-    const after = resolveBattleTurn(start, { kind: "move", moveId: firstMove(start.team[0]) }, 4);
+    const after = resolveBattleTurn(start, { kind: "move", moveId: hitMove(start.team[0]) }, 4);
     expect(after.status).toBe("lost");
   });
 
@@ -147,11 +151,56 @@ describe("a turn", () => {
   });
 });
 
+describe("chosen movesets", () => {
+  it("respects a selection of fewer than four instead of topping it back up", () => {
+    // The trap: auto-filling to four put a move the player had just removed
+    // straight back on the card.
+    const picked = activeMoves("bulbasaur", 30, ["charge", "fouet_lianes"]);
+    expect(picked).toEqual(["charge", "fouet_lianes"]);
+  });
+
+  it("falls back to the newest moves when nothing was chosen", () => {
+    const auto = activeMoves("bulbasaur", 30);
+    expect(auto).toHaveLength(4);
+    expect(auto.every((move) => knownMoves("bulbasaur", 30).includes(move))).toBe(true);
+  });
+
+  it("drops a move the species cannot use rather than failing", () => {
+    // What happens right after an evolution into a different learnset.
+    expect(activeMoves("bulbasaur", 30, ["tonnerre", "charge"])).toEqual(["charge"]);
+  });
+
+  it("never offers a move above the Pokémon's level", () => {
+    const early = knownMoves("bulbasaur", 5);
+    expect(early).not.toContain("lance_soleil");
+    expect(knownMoves("bulbasaur", 50)).toContain("lance_soleil");
+  });
+});
+
+describe("drain moves", () => {
+  it("heal from the damage dealt, not from the user's own maximum", () => {
+    // The trap: reading `heal` as a fraction of max hit points let a frail
+    // Pokémon out-heal what it was taking, and the fight never ended.
+    const start = battle(["onix"], ["caterpie"], 40, 40);
+    start.foes[0].hp = Math.round(start.foes[0].maxHp * 0.5);
+    const before = start.foes[0].hp;
+
+    const after = resolveBattleTurn(start, { kind: "move", moveId: "armure" }, 3);
+    const drain = after.log.find((e) => e.kind === "heal");
+    const hit = after.log.find((e) => e.kind === "damage" && e.side === "foe");
+
+    if (drain && hit) {
+      expect(drain.amount).toBeLessThanOrEqual(hit.amount ?? 0);
+      expect(after.foes[0].hp).toBeLessThan(before + (hit.amount ?? 0));
+    }
+  });
+});
+
 describe("the foe's brain", () => {
   it("reaches for what works instead of picking at random", () => {
     // Caninos knows Lance-Flammes; against a grass Pokémon it should
     // overwhelmingly prefer it over Vive-Attaque.
-    const state = battle(["sunkern"], ["caninos"], 30);
+    const state = battle(["sunkern"], ["growlithe"], 30);
     const picks = Array.from({ length: 60 }, (_, i) => chooseFoeMove(state, makeSeededRng(i)));
     const fire = picks.filter((id) => MOVES[id]?.type === "feu").length;
     expect(fire).toBeGreaterThan(picks.length / 2);

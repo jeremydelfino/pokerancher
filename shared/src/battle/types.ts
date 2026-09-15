@@ -22,6 +22,8 @@ export interface Battler {
   name: string;
   /** National Pokédex number, so the real sprite loads. */
   dex: number;
+  /** Draw the shiny sprite. Cosmetic — it changes nothing in the maths. */
+  shiny: boolean;
   types: PokeType[];
   level: number;
   hp: number;

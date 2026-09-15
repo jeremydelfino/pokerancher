@@ -2,7 +2,9 @@
 
 Fan-game web Pokémon (Idle + Roguelite + Gacha), 100% gratuit, sans pub ni micro-transaction.
 
-Ce projet implémente les trois briques essentielles : **connexion Discord**, **Refuge (idle)** et **Gacha (fusion de doublons)**.
+Trois boucles qui se nourrissent : le **Refuge** produit des ressources en continu, les
+ressources achètent des **œufs** et des **niveaux**, et les équipes ainsi montées vont
+chercher les dix **expéditions** — dont chaque boss est un légendaire.
 
 ---
 
@@ -158,6 +160,9 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Trois sont **ciblés** (Mousse, Marée, Roche) et ne sortent qu'un métier — utiles quand
   il te manque un enclos précis ; les autres sont des loteries larges
 - L'Œuf Prisme ne sort **jamais** de commun
+- Chaque œuf a sa **chance de chromatique** (de 1/350 à 1/45 pour l'Œuf Prisme). En éclore
+  un **débloque définitivement** la forme chromatique de l'espèce : tu peux ensuite
+  l'afficher ou non depuis sa fiche, et ça survit à la fusion comme à l'évolution
 - Les doublons fusionnent et augmentent les stats (paliers ⭐)
 
 ### Marché (hôtel de vente)
@@ -179,9 +184,25 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Les paliers actifs multiplient la production des enclos et notent leur efficacité en étoiles
 - Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
 
+### Codex (la collection) — et la fiche d'un Pokémon
+- **84 espèces**, en familles d'évolution complètes ; la rareté suit la famille
+  (Bulbizarre commun → Herbizarre rare → Florizarre épique)
+- Statistiques de complétion sur le côté, tri par trait, filtre « possédés »
+- **Clique une carte possédée** pour ouvrir sa fiche, où tout se passe :
+  - **Monter son niveau** (jusqu'à 100), payé avec la ressource de son métier —
+    baies, poissons, bois ou minerai, et en **pièces** pour un Pokémon sans métier.
+    `+1` et `+10` affichent le prix réel ; `+10` n'achète que ce que ta bourse permet
+  - **Choisir ses 4 attaques** parmi tout ce qu'il a appris. Le reste de l'échelle
+    reste affiché, verrouillé, avec le niveau requis
+  - **Le faire évoluer** quand il atteint le niveau — Évoli propose ses trois formes,
+    et évoluer vers une espèce déjà possédée fusionne les deux piles
+  - **Basculer en chromatique** si tu en as déjà éclos un de cette espèce
+- Un Pokémon en expédition est gelé : sa fiche s'ouvre, mais rien n'est modifiable
+
 ### Exploration (roguelite)
-- **10 expéditions** de difficulté croissante ; battre le légendaire d'un stage débloque
-  le suivant. L'écran de départ montre ce qui est fait, ce qui est ouvert, ce qui est verrouillé
+- **10 expéditions** de difficulté croissante, présentées en **frise en haut de l'écran** ;
+  battre le légendaire d'un stage débloque le suivant. La frise montre ce qui est fait,
+  ce qui est ouvert, ce qui est verrouillé, et le boss de chaque stage en silhouette
 - Compose une équipe (1 à 6), choisis ton chemin sur une carte à embranchements
 - **Combats Pokémon 1v1 au tour par tour** : vraies attaques, 18 types avec table
   d'efficacité, PP, précision, priorité, changements de Pokémon. Tu affrontes 1 à 3
@@ -190,6 +211,9 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Événements, échoppes, reliques temporaires
 - Aux points de décision : **rentrer** avec tout, **sécuriser** une partie, ou **continuer**
 - Mourir fait perdre le butin non sécurisé ; les œufs gagnés éclosent au retour
+- **Ton équipe part au niveau de tes Pokémon**, pas à celui du stage : le niveau affiché
+  sur une expédition est une recommandation. C'est ce qui relie l'Idle au roguelite —
+  les ressources du Refuge achètent les niveaux, et les niveaux ouvrent les stages
 
 ---
 
@@ -253,8 +277,9 @@ pokerancher/
 │   └── src/
 │       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
 │       ├── market.ts        # Ventes et paliers d'enclos (règles)
+│       ├── progression.ts   # Niveaux, attaques apprises, évolutions
 │       ├── battle/          # Combat Pokémon 1v1 : types, dégâts, tours
-│       ├── pokemon-data.ts  # Espèces, slots, rareté
+│       ├── pokemon-data.ts  # Espèces, familles d'évolution, rareté
 │       ├── types.ts         # Interfaces TypeScript
 │       ├── traits/          # Moteur de traits, effets, synergies, étoiles
 │       ├── run/             # RNG seedé, carte, combat, machine à états
@@ -262,7 +287,7 @@ pokerancher/
 │
 ├── server/                  # Backend Node + Express + Prisma
 │   ├── src/
-│   │   ├── routes/          # API endpoints (auth, refuge, gacha, market, run, codex)
+│   │   ├── routes/          # API endpoints (auth, refuge, gacha, market, run, pokemon, codex)
 │   │   ├── services/        # Logique métier
 │   │   └── auth/            # Discord OAuth2 + JWT
 │   └── prisma/
@@ -363,6 +388,8 @@ marque pixel dessinée en SVG sert de repli — rien ne casse.
 - [x] Combat Pokémon 1v1 au tour par tour avec vraies attaques et table des types
 - [x] 10 stages de difficulté, boss légendaire, progression débloquante
 - [x] Plusieurs types d'œufs
+- [x] 84 espèces en familles d'évolution, avec learnsets par niveau
+- [x] Niveaux achetés avec les ressources, attaques au choix, évolutions, chromatiques
 - [ ] Compositions sauvegardées (builds nommés)
 - [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels

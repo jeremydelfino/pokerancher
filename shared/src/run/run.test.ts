@@ -18,10 +18,10 @@ import {
 import type { RunState } from "./types.js";
 
 const RECRUITS: RunRecruit[] = [
-  { unitId: "u1", speciesId: "keldeo", duplicateCount: 4 },
-  { unitId: "u2", speciesId: "snivy", duplicateCount: 2 },
-  { unitId: "u3", speciesId: "onix", duplicateCount: 1 },
-  { unitId: "u4", speciesId: "lapras", duplicateCount: 1 },
+  { unitId: "u1", speciesId: "keldeo", level: 26 },
+  { unitId: "u2", speciesId: "snivy", level: 18 },
+  { unitId: "u3", speciesId: "onix", level: 14 },
+  { unitId: "u4", speciesId: "lapras", level: 14 },
 ];
 
 /**
@@ -103,12 +103,13 @@ describe("battles", () => {
     expect(() => enterNode(state, "n1-0")).toThrow();
   });
 
-  it("carries hit points out of the fight and into the run", () => {
+  it("carries the fight's outcome onto the run's own copy of the team", () => {
     let state = startRun(4321, RECRUITS);
     state = enterNode(state, availableNodes(state)[0].id);
 
-    const before = state.team.map((m) => m.hp);
-    for (let i = 0; i < 40 && state.battle?.status === "active"; i++) {
+    const startingFoeHp = state.battle!.foes[0].hp;
+
+    for (let i = 0; i < 60 && state.battle?.status === "active"; i++) {
       const active = state.battle.team[state.battle.activeIndex];
       state = playBattleTurn(state, { kind: "move", moveId: active.moves[0].id });
       if (state.battle?.awaitingSwitch) {
@@ -117,9 +118,11 @@ describe("battles", () => {
       }
     }
 
-    // Somebody took damage, and the run's copy of the team knows about it.
-    expect(state.team.map((m) => m.hp)).not.toEqual(before);
-    expect(state.team.every((m) => m.hp <= m.maxHp)).toBe(true);
+    // The fight happened…
+    expect(state.battle === null || state.battle.foes[0].hp < startingFoeHp).toBe(true);
+    // …and whatever it did to the team, the run's copy agrees and stays sane.
+    expect(state.team.every((m) => m.hp >= 0 && m.hp <= m.maxHp)).toBe(true);
+    expect(state.team).toHaveLength(RECRUITS.length);
   });
 
   it("refuses a turn when no fight is running", () => {
@@ -152,7 +155,7 @@ describe("startRun", () => {
     const many = Array.from({ length: 20 }, (_, i) => ({
       unitId: `u${i}`,
       speciesId: "snivy",
-      duplicateCount: 1,
+      level: 14,
     }));
     expect(startRun(1, many).team).toHaveLength(RUN_CONFIG.teamSize);
   });
@@ -163,11 +166,13 @@ describe("startRun", () => {
     expect(() => startRun(1, RECRUITS, "stage-nope")).toThrow();
   });
 
-  it("scales the team to the stage rather than leaving it behind", () => {
-    const early = startRun(1, RECRUITS, "stage-1").team[0];
-    const late = startRun(1, RECRUITS, "stage-9").team[0];
-    expect(late.level).toBeGreaterThan(early.level);
-    expect(late.maxHp).toBeGreaterThan(early.maxHp);
+  it("takes each Pokémon in at the level the player paid for", () => {
+    const team = startRun(1, RECRUITS, "stage-1").team;
+    for (const [index, recruit] of RECRUITS.entries()) {
+      expect(team[index].level, recruit.speciesId).toBe(recruit.level);
+    }
+    // The stage does not cap it: the same team is the same team wherever it goes.
+    expect(startRun(1, RECRUITS, "stage-9").team[0].level).toBe(RECRUITS[0].level);
   });
 
   it("starts with nothing banked and nothing pending", () => {

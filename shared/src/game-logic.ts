@@ -65,6 +65,11 @@ export function rollEggSpecies(egg: EggType, rng: () => number = Math.random): P
   return bracket[Math.min(bracket.length - 1, Math.floor(rng() * bracket.length))];
 }
 
+/** Whether this hatch comes out chromatic. Rolled independently of the species. */
+export function rollShiny(egg: EggType, rng: () => number = Math.random): boolean {
+  return rng() < egg.shinyChance;
+}
+
 /** The published odds, as percentages, for the egg card. */
 export function eggOdds(egg: EggType): { rarity: Rarity; percent: number }[] {
   const pool = eggPool(egg);

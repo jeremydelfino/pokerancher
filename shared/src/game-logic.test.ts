@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeProduction, MAX_OFFLINE_MS, rollGachaSpecies, starTierForCount } from "./game-logic.js";
-import { POKEMON_SPECIES } from "./pokemon-data.js";
+import { POKEMON_BY_ID, POKEMON_SPECIES, SLOTS_BY_TYPE } from "./pokemon-data.js";
 
 describe("starTierForCount", () => {
   it("gives 0 stars below the first threshold", () => {
@@ -22,6 +22,11 @@ describe("starTierForCount", () => {
 });
 
 describe("computeProduction", () => {
+  // Read the rates from the data rather than repeating them: these test the
+  // formula, and a rebalance in pokemon-data.ts must not be able to fail them.
+  const BERRY_RATE = SLOTS_BY_TYPE.BERRY_FARM.baseRatePerHour;
+  const SNIVY = POKEMON_BY_ID.snivy.trait!.multiplier;
+
   it("computes berry output for a Vipélierre on the berry farm", () => {
     const result = computeProduction({
       speciesId: "snivy",
@@ -29,9 +34,9 @@ describe("computeProduction", () => {
       elapsedMs: 60 * 60 * 1000,
       duplicateCount: 1,
     });
-    // base 60/h * trait 1.5 * star mult 1 (0 stars) * 1h
+    // base rate * the species' trait * star mult 1 (0 stars) * 1h
     expect(result.resource).toBe("berry");
-    expect(result.amount).toBe(90);
+    expect(result.amount).toBe(Math.floor(BERRY_RATE * SNIVY));
   });
 
   it("applies the star tier multiplier on top of the trait", () => {
@@ -41,7 +46,7 @@ describe("computeProduction", () => {
       elapsedMs: 60 * 60 * 1000,
       duplicateCount: 4, // 2 stars -> x1.25
     });
-    expect(result.amount).toBe(Math.floor(60 * 1.5 * 1.25));
+    expect(result.amount).toBe(Math.floor(BERRY_RATE * SNIVY * 1.25));
   });
 
   it("caps elapsed time at MAX_OFFLINE_MS", () => {

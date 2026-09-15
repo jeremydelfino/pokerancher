@@ -4,6 +4,8 @@ import {
   EGG_TYPES,
   eggOdds,
   rollEggSpecies,
+  rollShiny,
+  START_LEVEL,
   starTierForCount,
 } from "@pokerancher/shared";
 import { prisma } from "../db.js";
@@ -36,6 +38,7 @@ export async function rollEgg(userId: string, eggId: string = DEFAULT_EGG) {
   }
 
   const species = rollEggSpecies(egg);
+  const shiny = rollShiny(egg);
 
   const [paid, unit] = await prisma.$transaction([
     // Conditional debit: two clicks racing each other must not buy two eggs for
@@ -46,8 +49,18 @@ export async function rollEgg(userId: string, eggId: string = DEFAULT_EGG) {
     }),
     prisma.pokemonUnit.upsert({
       where: { userId_speciesId: { userId, speciesId: species.id } },
-      update: { quantity: { increment: 1 } },
-      create: { userId, speciesId: species.id, quantity: 1 },
+      // A chromatic hatch unlocks the look for good; whether it is *shown* is
+      // then the player's call in the codex, except on the very first copy
+      // where showing it is obviously what they want.
+      update: shiny ? { quantity: { increment: 1 }, shinyUnlocked: true } : { quantity: { increment: 1 } },
+      create: {
+        userId,
+        speciesId: species.id,
+        quantity: 1,
+        level: START_LEVEL,
+        shiny,
+        shinyUnlocked: shiny,
+      },
     }),
   ]);
 
@@ -56,6 +69,7 @@ export async function rollEgg(userId: string, eggId: string = DEFAULT_EGG) {
   return {
     egg: { id: egg.id, name: egg.name },
     species,
+    shiny,
     quantity: unit.quantity,
     isNew: unit.quantity === 1,
     starTier: starTierForCount(unit.quantity),

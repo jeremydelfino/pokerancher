@@ -62,7 +62,7 @@ export const MOVES: Record<string, MoveDefinition> = {
   tranch_herbe: { id: "tranch_herbe", name: "Tranch'Herbe", type: "plante", category: "speciale", power: 55, accuracy: 0.95, pp: 15, description: "Des feuilles tranchantes comme des lames." },
   lance_soleil: { id: "lance_soleil", name: "Lance-Soleil", type: "plante", category: "speciale", power: 105, accuracy: 0.85, pp: 5, description: "Concentre la lumière en un rayon." },
   vampigraine: { id: "vampigraine", name: "Vampigraine", type: "plante", category: "statut", power: 0, accuracy: 0.9, pp: 10, effect: { kind: "heal", value: 0.3 }, description: "Draine la vie ambiante et se soigne." },
-  giga_sangsue: { id: "giga_sangsue", name: "Giga-Sangsue", type: "plante", category: "speciale", power: 70, accuracy: 1, pp: 10, description: "Aspire l'énergie de la cible." },
+  giga_sangsue: { id: "giga_sangsue", name: "Giga-Sangsue", type: "plante", category: "speciale", power: 70, accuracy: 1, pp: 10, effect: { kind: "heal", value: 0.5 }, description: "Aspire l’énergie de la cible et s’en nourrit." },
 
   /* --- Feu --------------------------------------------------------------- */
   flammeche: { id: "flammeche", name: "Flammèche", type: "feu", category: "speciale", power: 45, accuracy: 1, pp: 20, description: "Une petite gerbe de flammes." },
@@ -115,6 +115,85 @@ export const MOVES: Record<string, MoveDefinition> = {
   /* --- Dragon ------------------------------------------------------------ */
   draco_griffe: { id: "draco_griffe", name: "Draco-Griffe", type: "dragon", category: "physique", power: 85, accuracy: 1, pp: 10, description: "Des griffes chargées de puissance draconique." },
   colere: { id: "colere", name: "Colère", type: "dragon", category: "physique", power: 120, accuracy: 0.8, pp: 4, description: "Une fureur incontrôlable." },
+
+
+  /* --- Compléments par type ----------------------------------------------
+   * Chaque type a besoin d'une échelle complète — une attaque faible qu'on
+   * apprend tôt, une moyenne, une forte — sinon un Pokémon de ce type passe
+   * vingt niveaux avec la même option. */
+
+  /* Normal */
+  ecras_face: { id: "ecras_face", name: "Écras'Face", type: "normal", category: "physique", power: 60, accuracy: 1, pp: 15, description: "Un coup franc, sans style." },
+  rugissement: { id: "rugissement", name: "Rugissement", type: "normal", category: "statut", power: 0, accuracy: 1, pp: 10, effect: { kind: "debuff_attack", value: 0.75 }, description: "Baisse l'Attaque de l'adversaire." },
+  hyper_voix: { id: "hyper_voix", name: "Hyper Voix", type: "normal", category: "speciale", power: 90, accuracy: 1, pp: 8, description: "Un cri qui fait vibrer l'air." },
+
+  /* Plante */
+  vegepuissance: { id: "vegepuissance", name: "Végé-Attaque", type: "plante", category: "physique", power: 90, accuracy: 1, pp: 8, description: "Frappe avec toute la force de la végétation." },
+  feuillemagik: { id: "feuillemagik", name: "Feuille Magik", type: "plante", category: "speciale", power: 60, accuracy: 1, pp: 15, description: "Des feuilles qui ne ratent jamais leur cible." },
+
+  /* Feu */
+  crocs_feu: { id: "crocs_feu", name: "Crocs Feu", type: "feu", category: "physique", power: 65, accuracy: 0.95, pp: 12, description: "Une morsure incandescente." },
+  boutefeu: { id: "boutefeu", name: "Boutefeu", type: "feu", category: "physique", power: 105, accuracy: 0.9, pp: 6, effect: { kind: "buff_defense", value: 0.85 }, description: "Charge enflammée — et tant pis pour la garde." },
+
+  /* Eau */
+  hydrocanon: { id: "hydrocanon", name: "Hydrocanon", type: "eau", category: "speciale", power: 110, accuracy: 0.8, pp: 5, description: "Un jet à démonter un mur." },
+  aqua_jet: { id: "aqua_jet", name: "Aqua-Jet", type: "eau", category: "physique", power: 40, accuracy: 1, pp: 15, priority: 1, description: "Fonce dans un rideau d'eau. Frappe en premier." },
+
+  /* Électrik */
+  cage_eclair: { id: "cage_eclair", name: "Cage Éclair", type: "electrik", category: "statut", power: 0, accuracy: 0.9, pp: 10, effect: { kind: "debuff_attack", value: 0.7 }, description: "Paralyse les muscles de la cible." },
+  fatal_foudre: { id: "fatal_foudre", name: "Fatal-Foudre", type: "electrik", category: "speciale", power: 120, accuracy: 0.7, pp: 4, description: "Tout ou rien." },
+
+  /* Glace */
+  poudreuse: { id: "poudreuse", name: "Poudreuse", type: "glace", category: "speciale", power: 40, accuracy: 1, pp: 20, description: "Une bourrasque de neige." },
+
+  /* Combat */
+  balayage: { id: "balayage", name: "Balayage", type: "combat", category: "physique", power: 65, accuracy: 1, pp: 15, description: "Fauche les jambes de la cible." },
+  cognobidon: { id: "cognobidon", name: "Cogne", type: "combat", category: "physique", power: 40, accuracy: 1, pp: 20, description: "Un direct rapide." },
+
+  /* Poison */
+  acide: { id: "acide", name: "Acide", type: "poison", category: "speciale", power: 55, accuracy: 1, pp: 15, effect: { kind: "debuff_defense", value: 0.85 }, description: "Ronge autant l'armure que la peau." },
+  bombe_beurk: { id: "bombe_beurk", name: "Bomb-Beurk", type: "poison", category: "speciale", power: 90, accuracy: 1, pp: 8, description: "Une charge de boue toxique." },
+
+  /* Sol */
+  jet_de_sable: { id: "jet_de_sable", name: "Jet de Sable", type: "sol", category: "statut", power: 0, accuracy: 1, pp: 12, effect: { kind: "debuff_attack", value: 0.8 }, description: "Du sable dans les yeux." },
+  tunnel: { id: "tunnel", name: "Tunnel", type: "sol", category: "physique", power: 80, accuracy: 1, pp: 10, description: "Creuse, puis ressort sous la cible." },
+
+  /* Vol */
+  tornade: { id: "tornade", name: "Tornade", type: "vol", category: "speciale", power: 45, accuracy: 1, pp: 20, description: "Un coup d'aile qui soulève la poussière." },
+  aeropique: { id: "aeropique", name: "Aéropique", type: "vol", category: "physique", power: 40, accuracy: 1, pp: 15, priority: 1, description: "Fond sur la cible avant tout le monde." },
+  rapace: { id: "rapace", name: "Rapace", type: "vol", category: "physique", power: 100, accuracy: 0.95, pp: 6, description: "Un piqué qui ne pardonne rien." },
+
+  /* Psy */
+  hypnose: { id: "hypnose", name: "Hypnose", type: "psy", category: "statut", power: 0, accuracy: 0.85, pp: 10, effect: { kind: "debuff_attack", value: 0.65 }, description: "Endort à moitié l'adversaire." },
+
+  /* Insecte */
+  piqure: { id: "piqure", name: "Piqûre", type: "insecte", category: "physique", power: 35, accuracy: 1, pp: 20, description: "Un dard rapide." },
+  vampirisme: { id: "vampirisme", name: "Vampirisme", type: "insecte", category: "physique", power: 55, accuracy: 1, pp: 15, effect: { kind: "heal", value: 0.5 }, description: "Rend à l’attaquant la moitié des dégâts infligés." },
+  dard_nuee: { id: "dard_nuee", name: "Dard-Nuée", type: "insecte", category: "physique", power: 90, accuracy: 0.95, pp: 8, description: "Une nuée de dards en rafale." },
+
+  /* Roche */
+  lame_de_roc: { id: "lame_de_roc", name: "Lame de Roc", type: "roche", category: "physique", power: 100, accuracy: 0.85, pp: 6, description: "Des lames de pierre jaillissent du sol." },
+
+  /* Spectre */
+  lechouille: { id: "lechouille", name: "Léchouille", type: "spectre", category: "physique", power: 35, accuracy: 1, pp: 20, description: "Désagréable, et étonnamment efficace." },
+  tenebres: { id: "tenebres", name: "Ombre Portée", type: "spectre", category: "physique", power: 70, accuracy: 1, pp: 12, priority: 1, description: "L'ombre frappe avant le corps." },
+
+  /* Ténèbres */
+  coup_bas: { id: "coup_bas", name: "Coup Bas", type: "tenebres", category: "physique", power: 45, accuracy: 1, pp: 15, priority: 1, description: "Frappe le premier, et frappe mal." },
+
+  /* Dragon */
+  draco_souffle: { id: "draco_souffle", name: "Draco-Souffle", type: "dragon", category: "speciale", power: 55, accuracy: 1, pp: 20, description: "Un souffle chargé d'énergie draconique." },
+
+  /* Acier */
+  tete_de_fer: { id: "tete_de_fer", name: "Tête de Fer", type: "acier", category: "physique", power: 80, accuracy: 0.95, pp: 10, description: "Un coup de tête blindé." },
+
+  /* Fée */
+  charme: { id: "charme", name: "Charme", type: "fee", category: "statut", power: 0, accuracy: 1, pp: 10, effect: { kind: "debuff_attack", value: 0.7 }, description: "Désarme littéralement l'adversaire." },
+
+  /* Soin */
+  synthese: { id: "synthese", name: "Synthèse", type: "plante", category: "statut", power: 0, accuracy: 1, pp: 6, effect: { kind: "heal", value: 0.4 }, description: "Refait ses forces à la lumière." },
+  danse_lames: { id: "danse_lames", name: "Danse-Lames", type: "normal", category: "statut", power: 0, accuracy: 1, pp: 8, effect: { kind: "buff_attack", value: 1.5 }, description: "Une danse qui aiguise tout." },
+  armure: { id: "armure", name: "Armure", type: "normal", category: "statut", power: 0, accuracy: 1, pp: 8, effect: { kind: "buff_defense", value: 1.4 }, description: "Durcit la peau." },
 
   /* --- Soin -------------------------------------------------------------- */
   repos: { id: "repos", name: "Repos", type: "psy", category: "statut", power: 0, accuracy: 1, pp: 6, effect: { kind: "heal", value: 0.45 }, description: "Récupère près de la moitié de ses PV." },

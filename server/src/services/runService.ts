@@ -178,7 +178,9 @@ export async function startRun(userId: string, unitIds: string[], stageId = FIRS
     .map((unit) => ({
       unitId: unit.id,
       speciesId: unit.speciesId,
-      duplicateCount: unit.quantity,
+      level: unit.level,
+      moves: unit.moves,
+      shiny: unit.shiny,
     }));
 
   const state = startRunState(randomSeed(), recruits, stageId);

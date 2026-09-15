@@ -44,6 +44,13 @@ export interface PokemonSpecies {
   /** The Refuge job. Absent means this species cannot work a pen — it says
    *  nothing about whether it can fight. */
   trait?: PassiveTrait;
+  /**
+   * What this species becomes. Usually one target; several when the player
+   * chooses (Évoli). Absent on a final form.
+   */
+  evolvesTo?: string[];
+  /** Level the evolution unlocks at. Meaningless without `evolvesTo`. */
+  evolvesAtLevel?: number;
 }
 
 export interface SlotDefinition {

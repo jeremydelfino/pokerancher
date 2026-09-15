@@ -42,8 +42,16 @@ Deux fichiers.
   rarity: "rare",           // common | rare | epic | legendary
   role: "passive",          // profil de combat : passive encaisse, offensive frappe
   trait: { slot: "MINING", multiplier: 1.4 },  // le métier — facultatif
+  evolvesTo: ["arcanine"],  // facultatif — plusieurs cibles = évolution à choix
+  evolvesAtLevel: 36,       // à partir de quel niveau l'évolution est proposée
 }
 ```
+
+⚠️ **La rareté suit la famille d'évolution, pas le goût.** Bulbizarre est
+commun, Herbizarre rare, Florizarre épique. C'est ce qui fait qu'évoluer *donne
+un trait* (le budget de traits est fixé par la rareté, voir plus bas) et pas
+seulement des points de stats. Un stade final commun, ou un premier stade
+épique, casse cette lecture — ne le fais pas sans le vouloir.
 
 ⚠️ **`role` n'est pas une permission.** Une espèce travaille un enclos si elle a
 un `trait` (un métier), et se bat si tu l'emmènes en expédition — les deux sont
@@ -69,6 +77,21 @@ en tête :
 ```ts
 growlithe: ["mineur", "carapace"],
 ```
+
+**`shared/src/data/species-battle.ts`** — sa fiche de combat : ses types, son
+`tier` (1 commun → 5 boss) et la liste des attaques qu'il apprend, par niveau.
+
+```ts
+growlithe: { types: ["feu"], tier: 2, learnset: [...FEU, at(20, "crocs_feu")] },
+```
+
+Les listes `FEU`, `PLANTE`, `EAU`… sont des échelles d'attaques partagées par
+type : une espèce part de l'échelle de son type et n'ajoute que ce qui lui est
+propre. C'est ce qui permet d'avoir 84 espèces cohérentes sans écrire 84 fois
+la même progression.
+
+⚠️ **Une espèce sans entrée ici ne sait pas se battre.** Les trois fichiers vont
+ensemble ; un test échoue si l'un des trois oublie une espèce.
 
 ### ⚠️ Le nombre de traits n'est pas libre
 
@@ -531,14 +554,21 @@ ajustement de stat cesse d'être un combat.
 
 ### Qui se bat
 
-`data/battlers.ts` donne à chaque espèce ses types, ses quatre attaques et son
-`tier` (1 commun → 5 boss). Trois groupes, une seule forme :
+Trois groupes, une seule forme (types, `tier`, attaques) :
 
-| groupe | rôle |
-|---|---|
-| `SPECIES_BATTLE` | la collection, par id de `pokemon-data.ts` |
-| `WILD_SPECIES` | ce qu'on croise sur le sentier, jamais collectionnable |
-| `BOSS_SPECIES` | un légendaire par stage |
+| groupe | fichier | rôle |
+|---|---|---|
+| `SPECIES_BATTLE` | `data/species-battle.ts` | la collection, par id de `pokemon-data.ts` |
+| `WILD_SPECIES` | `data/battlers.ts` | ce qu'on croise sur le sentier, jamais collectionnable |
+| `BOSS_SPECIES` | `data/battlers.ts` | un légendaire par stage |
+
+⚠️ **Les ids sauvages sont préfixés `wild_`.** Sans ça un Rattata sauvage et le
+Rattata de ta collection se disputent la même clé, et `battlerSource` rend
+silencieusement le mauvais des deux.
+
+Un membre de la collection ne porte pas quatre attaques écrites en dur : il
+porte un **learnset**, et ses quatre attaques sortent de son niveau et de ce que
+le joueur a coché (section 11quinquies).
 
 Le `dex` d'un Pokémon sauvage est ce qui fait charger son vrai sprite. Sans
 source de sprites configurée, l'interface retombe sur la créature paramétrique.
@@ -590,10 +620,13 @@ Ajouter un onzième stage, c'est une entrée ici plus un légendaire dans
 
 ### Le niveau de ton équipe
 
-Il est calé sur le **stage**, pas sur le Pokémon (`recruitLevel`). Un légendaire
-fraîchement éclos n'est donc pas inutilisable au stage 1, et un starter n'est
-pas condamné au stage 10. Ce que la collection achète vraiment, c'est le `tier`
-(une meilleure ligne de stats à niveau égal) et les niveaux de fusion.
+C'est **celui de tes Pokémon**, pas celui du stage. Le `level` affiché sur une
+expédition est une recommandation, pas un plafond ni un plancher : partir au
+stage 8 avec une équipe niveau 20 est autorisé, et ça fait mal.
+
+C'est ce qui relie l'Idle au roguelite. Les baies, le bois, le minerai et le
+poisson que produit le Refuge ne servent plus seulement à agrandir les enclos :
+ils **achètent des niveaux**, et les niveaux sont ce qui ouvre le stage suivant.
 
 ---
 
@@ -614,6 +647,102 @@ endroit.
 
 Un poids à 0 veut dire « jamais » : l'Œuf Prisme ne peut pas sortir de commun,
 même en dernier recours.
+
+Chaque œuf porte aussi sa `shinyChance` (1/350 pour le plus commun, 1/45 pour
+l'Œuf Prisme). Voir plus bas ce qu'un chromatique débloque exactement.
+
+---
+
+## 11quinquies. Grandir : niveaux, attaques, évolutions, chromatiques
+
+Tout ce que le joueur fait à un Pokémon se passe sur **une seule fiche**, celle
+qui s'ouvre en cliquant une carte du Codex. Quatre choses, parce que ce sont
+quatre réponses à la même question — « j'en fais quoi, de celui-là ? » — et que
+les répartir sur quatre écrans obligerait à retenir le niveau en regardant les
+attaques.
+
+Les règles vivent dans `shared/src/progression.ts` (pur) et `data/levelling.ts`
+(les nombres). L'écran et le serveur appellent **les mêmes fonctions** : un
+bouton ne propose donc jamais quelque chose que le serveur refusera.
+
+### Les niveaux s'achètent, ils ne se gagnent pas
+
+Un combat ne donne aucune expérience. Un niveau se **paye**, avec la ressource
+du métier de l'espèce :
+
+| métier | ressource |
+|---|---|
+| Champ de baies | baies |
+| Ponton de pêche | poissons |
+| Coupe de bois | bois |
+| Mine | minerai |
+| *aucun métier* | pièces |
+
+C'est volontaire, et c'est le cœur de la boucle : le Refuge produit, la
+production monte les niveaux, les niveaux ouvrent les stages, les stages
+rapportent de quoi produire plus. Un Pokémon qui n'a pas de métier (Keldeo,
+Salamèche) coûte des pièces — donc de l'hôtel de vente — plutôt que d'être
+gratuit.
+
+```ts
+coût(niveau) = arrondi((base + growth × niveau²) × facteurDeRareté)
+```
+
+Quadratique : passer de 5 à 15 est une formalité, de 80 à 90 un projet. Les
+quatre `rarityFactor` (1 → 2.6) font qu'un légendaire coûte cher à monter, ce
+qui compense qu'il soit meilleur à niveau égal.
+
+⚠️ **`+10 niveaux` achète ce que la bourse permet, pas dix.** `affordableLevels`
+calcule combien de paliers passent, et le serveur débite le prix du *niveau
+réellement atteint*. Il n'y a pas de cas où le joueur paye dix et en reçoit
+trois.
+
+### Les attaques viennent du niveau
+
+Un Pokémon **connaît** tout ce que son learnset lui donne à son niveau ou en
+dessous, et en **emporte quatre**. Les deux sont différents et c'est le point :
+la fiche montre toute l'échelle, y compris ce qui est encore verrouillé, parce
+que voir « Lance-Soleil — N.45 requis » est la moitié de la raison de monter
+jusqu'à 45.
+
+⚠️ `activeMoves` ne complète à quatre **que si le joueur n'a rien choisi de
+légal**. Auto-compléter systématiquement rendait impossible de décocher une
+attaque : elle revenait aussitôt.
+
+Monter de niveau renvoie la liste de ce qui vient d'être appris
+(`movesLearnedBetween`), et l'écran l'annonce — sinon un gain de niveau est un
+chiffre qui bouge et rien d'autre.
+
+### Les évolutions
+
+`evolvesTo` peut contenir **plusieurs** cibles : Évoli propose Aquali, Voltali
+et Pyroli, et le joueur choisit. Le serveur vérifie les deux conditions — la
+cible est bien une évolution *directe* de l'espèce, et le niveau est atteint —
+et les messages d'erreur distinguent les deux cas, parce que « Chenipan n'évolue
+pas en Papilusion — il devient Chrysacier » et « il évolue au niveau 7 » sont
+deux problèmes différents.
+
+Évoluer **fusionne** : si tu possèdes déjà l'espèce cible, l'exemplaire rejoint
+la pile existante, qui garde le meilleur des deux niveaux et le déblocage
+chromatique. Une évolution ne fait donc jamais perdre d'étoiles de fusion.
+
+⚠️ Une évolution est interdite pendant que le Pokémon est en expédition : le
+`RunState` porte une copie de ses stats, et le faire changer d'espèce en cours
+de route donnerait deux vérités.
+
+### Les chromatiques
+
+Deux états, à ne pas confondre :
+
+* `shinyUnlocked` — tu as **obtenu** un chromatique de cette espèce, une fois.
+  Ça ne se perd pas, ça survit à l'évolution et à la fusion.
+* `shiny` — tu **affiches** la forme chromatique. Un simple interrupteur sur la
+  fiche, réservé à qui l'a débloquée.
+
+Séparer les deux évite la punition idiote : avoir éclos un Florizarre
+chromatique puis l'avoir fusionné ne doit pas reprendre la couleur. Le sprite
+chromatique est une autre URL du même atlas ; sans source de sprites
+configurée, tout retombe sur la créature paramétrique et le jeu reste jouable.
 
 ---
 
@@ -643,6 +772,13 @@ Donc, concrètement :
   jamais un prix ni un total. `sellQuote()` est rejoué côté serveur contre le
   stock que la base affirme, et le débit est conditionnel (`quantity >= …`)
   pour que deux ventes simultanées ne puissent pas créer de pièces.
+- ✅ la fiche Pokémon aussi : `POST /pokemon/:id/level` envoie **un nombre de
+  paliers**, jamais un niveau cible ni un coût. Le serveur reprix chaque palier
+  et débite conditionnellement, épinglé sur le niveau qu'il vient de lire — deux
+  onglets ouverts ne peuvent pas acheter le même niveau deux fois. Même chose
+  pour `/moves` (l'attaque doit être dans le learnset au niveau atteint),
+  `/evolve` (cible directe, niveau atteint) et `/shiny` (l'espèce doit avoir été
+  débloquée).
 
 Le client peut exécuter les mêmes fonctions pour afficher en avance ; ça ne
 change rien, puisque ce qui compte est recalculé côté serveur.
@@ -652,18 +788,20 @@ change rien, puisque ce qui compte est recalculé côté serveur.
 ## 13. La boucle
 
 ```
-REFUGE ──▶ production ──▶ ressources ──▶ œufs ──▶ nouvelles espèces
-   ▲                          │                           │
-   │                          ▼                           │
-   │                    HÔTEL DE VENTE ──▶ pièces ──┬──────┤
-   │                                                │      │
-   │                          paliers d'enclos ◀────┘      ▼
-   └────── butin ◀── EXPÉDITION ◀── nouvelles compositions ─┘
+REFUGE ──▶ production ──▶ ressources ──┬──▶ œufs ──▶ nouvelles espèces
+   ▲                          │        │                      │
+   │                          ▼        └──▶ NIVEAUX ──┐       │
+   │                    HÔTEL DE VENTE ──▶ pièces ──┬─┤       │
+   │                                                │ │       │
+   │                          paliers d'enclos ◀────┘ ▼       ▼
+   └────── butin ◀── EXPÉDITION ◀── équipes plus fortes ──────┘
 ```
 
 Les deux moitiés partagent les mêmes données : un Pokémon obtenu en expédition
 change les synergies que le Refuge peut atteindre, et un Refuge mieux composé
-finance les expéditions suivantes. Les œufs gagnés en run **éclosent au retour**
+finance les expéditions suivantes. Depuis que les niveaux s'achètent avec les
+ressources du Refuge, la flèche est explicite : les baies que produit un
+Bulbizarre sont ce qui paye le niveau 30 qui permet de passer le stage 5. Les œufs gagnés en run **éclosent au retour**
 plutôt que de donner un bon d'achat, précisément pour que le retour de run soit
 un moment de collection et pas un moment de comptabilité.
 
@@ -672,7 +810,7 @@ un moment de collection et pas un moment de comptabilité.
 ## 14. Vérifier que tu n'as rien cassé
 
 ```bash
-npm run test --workspace shared   # 95 tests : roster, traits, combat, run, marché
+npm run test --workspace shared   # 133 tests : roster, progression, traits, combat, run, marché
 npm run typecheck                 # les trois paquets
 npm run build --workspace shared  # à relancer après toute modif de données
 ```

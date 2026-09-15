@@ -100,7 +100,11 @@ export function runDepth(state: RunState): number {
 export interface RunRecruit {
   unitId: string;
   speciesId: string;
-  duplicateCount: number;
+  /** The Pokémon's own level — bought with resources, not earned in battle. */
+  level: number;
+  /** The four it carries. Anything illegal is dropped, never rejected. */
+  moves?: string[];
+  shiny?: boolean;
 }
 
 /**
@@ -126,19 +130,6 @@ export function refreshTeamStats(team: readonly RunTeamMember[], bag: EffectBag)
   });
 }
 
-/**
- * The level your Pokémon fight at.
- *
- * Tied to the stage rather than to the Pokémon, so a fresh legendary is not
- * unusable in stage 1 and a starter is not hopeless in stage 10. What the
- * collection actually buys is the *tier* (a better stat line at the same level)
- * and the star bonus below.
- */
-export function recruitLevel(stage: StageDefinition, duplicateCount: number): number {
-  const { stars } = starTierForCount(duplicateCount);
-  return stage.level + RUN_CONFIG.playerLevelEdge + stars * RUN_CONFIG.starLevelBonus;
-}
-
 export function startRun(
   seed: number,
   recruits: readonly RunRecruit[],
@@ -148,10 +139,15 @@ export function startRun(
   if (!stage) throw new Error("Cette expédition n'existe pas");
 
   const team: RunTeamMember[] = recruits.slice(0, RUN_CONFIG.teamSize).map((recruit) => {
+    // The Pokémon walks in at the level the player paid for. The stage's own
+    // level is a *recommendation* shown on the selection screen, not a cap —
+    // taking an under-levelled team into stage 8 is allowed, and it hurts.
     const battler = makeBattler({
       key: recruit.unitId,
       id: recruit.speciesId,
-      level: recruitLevel(stage, recruit.duplicateCount),
+      level: recruit.level,
+      moves: recruit.moves,
+      shiny: recruit.shiny,
     });
     return {
       ...battler,

@@ -189,17 +189,18 @@ function Departure({
   const cleared = envelope.stages.filter((s) => s.cleared).length;
 
   return (
-    <div className="stage stage-wide-left">
-      <aside className="stage-rail stage-left">
-        <Frame greenery="vine">
-          <p className="rail-title">
-            Expéditions <span>{cleared}/{envelope.stages.length}</span>
-          </p>
-          <StageSelect stages={envelope.stages} selected={stageId} onSelect={setStageId} />
-        </Frame>
-      </aside>
+    <>
+      {/* The road across the top: ten tiles, left to right, in the order you
+          walk them. A rail made them a list; a frieze makes them a journey. */}
+      <Frame greenery="corner" className="frieze-frame">
+        <p className="rail-title">
+          Expéditions <span>{cleared}/{envelope.stages.length} terminées</span>
+        </p>
+        <StageSelect stages={envelope.stages} selected={stageId} onSelect={setStageId} />
+      </Frame>
 
-      <div className="stage-main">
+      <div className="stage stage-no-left">
+        <div className="stage-main">
         <Frame greenery="both">
           <p className="rail-title">
             Composer l'équipe
@@ -223,8 +224,9 @@ function Departure({
                 onClick={() => toggle(unit.id)}
                 disabled={busy}
               >
-                <CreatureAvatar speciesId={unit.speciesId} size={56} still />
+                <CreatureAvatar speciesId={unit.speciesId} size={52} still />
                 <span className="pick-name">{unit.species.name}</span>
+                <span className="pick-level">N.{unit.level}</span>
                 <TraitChips traits={resolveTraits(unit.speciesId)} />
               </button>
             ))}
@@ -241,9 +243,9 @@ function Departure({
               <div className="roster-grid">
                 {working.map((unit) => (
                   <span key={unit.id} className="pick pick-busy" title="Occupé au Refuge">
-                    <CreatureAvatar speciesId={unit.speciesId} size={56} still />
+                    <CreatureAvatar speciesId={unit.speciesId} size={52} still />
                     <span className="pick-name">{unit.species.name}</span>
-                    <span className="pick-meta">au Refuge</span>
+                    <span className="pick-meta">N.{unit.level} · au Refuge</span>
                   </span>
                 ))}
               </div>
@@ -261,16 +263,17 @@ function Departure({
         </Frame>
       </div>
 
-      <aside className="stage-rail stage-right">
-        <Frame tone="dark" greenery="vine">
-          <SynergyPanel
-            synergies={preview}
-            title="Aperçu des synergies"
-            empty="Sélectionne des compagnons pour voir ce qui s'allume."
-          />
-        </Frame>
-      </aside>
-    </div>
+        <aside className="stage-rail stage-right">
+          <Frame tone="dark" greenery="vine">
+            <SynergyPanel
+              synergies={preview}
+              title="Aperçu des synergies"
+              empty="Sélectionne des compagnons pour voir ce qui s'allume."
+            />
+          </Frame>
+        </aside>
+      </div>
+    </>
   );
 }
 

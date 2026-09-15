@@ -40,6 +40,14 @@ model PokemonUnit {
   speciesId      String
   quantity       Int      @default(1)
   createdAt      DateTime @default(now())
+  /// Bought with resources, never earned in battle. Drives its battle stats.
+  level          Int      @default(5)
+  /// The four it carries. Empty means "whatever it learned most recently".
+  moves          String[] @default([])
+  /// Whether it is *shown* as shiny. Cosmetic.
+  shiny          Boolean  @default(false)
+  /// Whether a shiny of this species was ever hatched. Gates the toggle above.
+  shinyUnlocked  Boolean  @default(false)
 
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   refugeWork RefugeAssignment?

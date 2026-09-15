@@ -49,16 +49,23 @@ interface Props {
   onSelect: (stageId: string) => void;
 }
 
+/**
+ * The ten expeditions, as a frieze across the top of the screen.
+ *
+ * Horizontal because the ten are a *road*: stage 3 comes after stage 2, and a
+ * vertical list says that far less clearly than a line does. The connectors
+ * between the tiles are the road; a cleared one lights up.
+ */
 export function StageSelect({ stages, selected, onSelect }: Props) {
   return (
-    <ol className="stage-list">
+    <ol className="stage-frieze">
       {stages.map((stage) => {
         const biome = BIOME[stage.biome] ?? BIOME.prairie;
         const boss = BOSS_BY_ID[stage.boss];
         const state = stage.cleared ? "done" : stage.unlocked ? "open" : "locked";
 
         return (
-          <li key={stage.id}>
+          <li key={stage.id} className={`frieze-step ${stage.cleared ? "frieze-step-done" : ""}`}>
             <button
               className={`stage-card stage-${state} ${selected === stage.id ? "stage-picked" : ""}`}
               style={{
@@ -71,26 +78,24 @@ export function StageSelect({ stages, selected, onSelect }: Props) {
             >
               <span className="stage-index">{stage.index}</span>
 
-              <span className="stage-body">
-                <span className="stage-name">{stage.name}</span>
-                <span className="stage-subtitle">{stage.subtitle}</span>
-                <span className="stage-facts">
-                  <span>{biome.label}</span>
-                  <span>Niv. {stage.level}</span>
-                  <span>
-                    {stage.foes} adversaire{stage.foes > 1 ? "s" : ""}
-                  </span>
-                  <span>{stage.rows} étapes</span>
-                </span>
-              </span>
-
               <span className="stage-boss">
                 {boss && (
                   <span className={stage.cleared ? "" : "stage-boss-hidden"}>
-                    <PokeSprite dex={boss.dex} name={boss.name} size={58} />
+                    <PokeSprite dex={boss.dex} name={boss.name} size={54} />
                   </span>
                 )}
-                <span className="stage-boss-name">{stage.cleared ? boss?.name : "???"}</span>
+              </span>
+
+              <span className="stage-body">
+                <span className="stage-name">{stage.name}</span>
+                <span className="stage-facts">
+                  <span>Niv. {stage.level}</span>
+                  <span>
+                    ×{stage.foes}
+                  </span>
+                  <span>{stage.rows} étapes</span>
+                </span>
+                <span className="stage-boss-name">{stage.cleared ? boss?.name : "boss ???"}</span>
               </span>
 
               <span className="stage-flag">

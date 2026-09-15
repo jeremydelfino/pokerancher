@@ -82,7 +82,22 @@ function spend(battler: Battler, moveId: string) {
   if (slot && slot.pp > 0) slot.pp -= 1;
 }
 
-function applyStatus(state: BattleState, user: Battler, target: Battler, move: MoveDefinition, side: "team" | "foe") {
+/**
+ * Applies a move's rider.
+ *
+ * `damageDealt` is what makes a drain move a drain move: on an attack, `heal`
+ * is a fraction of the damage you just did, not of your own maximum. Reading it
+ * as a fraction of max hit points let a level-60 Chenipan heal 60 with a hit
+ * that dealt 21 — a fight that literally could not end.
+ */
+function applyStatus(
+  state: BattleState,
+  user: Battler,
+  target: Battler,
+  move: MoveDefinition,
+  side: "team" | "foe",
+  damageDealt = 0
+) {
   const effect = move.effect;
   if (!effect) return;
 
@@ -90,7 +105,9 @@ function applyStatus(state: BattleState, user: Battler, target: Battler, move: M
 
   switch (effect.kind) {
     case "heal": {
-      const healed = Math.min(user.maxHp - user.hp, Math.round(user.maxHp * effect.value));
+      const pool = move.power > 0 ? damageDealt : user.maxHp;
+      const healed = Math.min(user.maxHp - user.hp, Math.round(pool * effect.value));
+      if (healed <= 0) break;
       user.hp += healed;
       push(state, { kind: "heal", side, text: `${user.name} récupère ${healed} PV.`, amount: healed });
       break;
@@ -152,8 +169,9 @@ function attack(
   const note = effectivenessLabel(multiplier);
   if (note) push(state, { kind: "effectiveness", side, text: note, multiplier });
 
-  // A damaging move can carry a rider — Close Combat's own guard drop, say.
-  if (move.effect) applyStatus(state, attacker, defender, move, side);
+  // A damaging move can carry a rider — Close Combat's own guard drop, or the
+  // life a drain move takes back out of the damage it just dealt.
+  if (move.effect) applyStatus(state, attacker, defender, move, side, damage);
 
   if (defender.hp <= 0) {
     push(state, { kind: "faint", side: side === "team" ? "foe" : "team", text: `${defender.name} est K.O. !` });

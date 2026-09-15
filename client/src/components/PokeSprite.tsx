@@ -16,18 +16,20 @@ export function PokeSprite({
   name,
   size = 120,
   back = false,
+  shiny = false,
 }: {
   dex: number;
   name: string;
   size?: number;
   back?: boolean;
+  shiny?: boolean;
 }) {
-  const url = spriteUrl(dex, back);
+  const url = spriteUrl(dex, back, shiny);
   const [broken, setBroken] = useState(false);
   const showSprite = url !== null && !broken;
 
   return (
-    <span className="pkspr" style={{ width: size, height: size }} title={name}>
+    <span className={`pkspr ${shiny ? "pkspr-shiny" : ""}`} style={{ width: size, height: size }} title={name}>
       {showSprite ? (
         <img
           className={`pkspr-img ${spriteIsAnimated(url) ? "" : "pkspr-bob"}`}

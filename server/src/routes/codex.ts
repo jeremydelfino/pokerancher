@@ -1,6 +1,7 @@
 import {
   POKEMON_SPECIES,
   resolveTraits,
+  SPECIES_BATTLE,
   starTierForCount,
   TRAIT_DEFINITIONS,
   type Rarity,
@@ -33,9 +34,13 @@ codexRouter.get("/", async (req, res) => {
       return {
         species,
         traits: resolveTraits(species.id),
+        types: SPECIES_BATTLE[species.id]?.types ?? [],
         owned: Boolean(unit),
         unitId: unit?.id ?? null,
         quantity: unit?.quantity ?? 0,
+        level: unit?.level ?? 0,
+        shiny: unit?.shiny ?? false,
+        shinyUnlocked: unit?.shinyUnlocked ?? false,
         starTier: starTierForCount(unit?.quantity ?? 0),
       };
     });
@@ -69,6 +74,7 @@ codexRouter.get("/", async (req, res) => {
     /** Copies held across the whole collection — the "how deep" number. */
     duplicates: units.reduce((sum, unit) => sum + unit.quantity, 0),
     starred: units.filter((unit) => starTierForCount(unit.quantity).stars > 0).length,
+    shinies: units.filter((unit) => unit.shinyUnlocked).length,
     byRarity,
     byTrait,
   });
