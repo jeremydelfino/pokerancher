@@ -6,6 +6,7 @@ import {
   resolveTraits,
   type BattleAction,
   type RunState,
+  type StageDefinition,
 } from "@pokerancher/shared";
 import { api, type OwnedPokemon, type RunAward, type RunEnvelope, type RunView } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
@@ -15,6 +16,7 @@ import { HealthBar } from "../components/HealthBar.js";
 import { PokemonBattle } from "../components/PokemonBattle.js";
 import { ResourceIcon, resourceLabel } from "../components/ResourceIcon.js";
 import { RunMapView } from "../components/RunMapView.js";
+import { RunRecap } from "../components/RunRecap.js";
 import { StageSelect } from "../components/StageSelect.js";
 import { SynergyPanel } from "../components/SynergyPanel.js";
 import { TopBar } from "../components/TopBar.js";
@@ -72,7 +74,7 @@ function PartyRail({ state }: { state: RunState }) {
                 member.key === activeKey ? "party-card-active" : ""
               }`}
             >
-              <CreatureAvatar speciesId={member.speciesId} size={44} still />
+              <CreatureAvatar speciesId={member.speciesId} size={64} still />
               <div className="party-body">
                 <span className="party-name">
                   {species?.name ?? member.name} <span className="party-level">N.{member.level}</span>
@@ -224,7 +226,7 @@ function Departure({
                 onClick={() => toggle(unit.id)}
                 disabled={busy}
               >
-                <CreatureAvatar speciesId={unit.speciesId} size={52} still />
+                <CreatureAvatar speciesId={unit.speciesId} size={72} still />
                 <span className="pick-name">{unit.species.name}</span>
                 <span className="pick-level">N.{unit.level}</span>
                 <TraitChips traits={resolveTraits(unit.speciesId)} />
@@ -243,7 +245,7 @@ function Departure({
               <div className="roster-grid">
                 {working.map((unit) => (
                   <span key={unit.id} className="pick pick-busy" title="Occupé au Refuge">
-                    <CreatureAvatar speciesId={unit.speciesId} size={52} still />
+                    <CreatureAvatar speciesId={unit.speciesId} size={72} still />
                     <span className="pick-name">{unit.species.name}</span>
                     <span className="pick-meta">N.{unit.level} · au Refuge</span>
                   </span>
@@ -284,6 +286,10 @@ export function Explore() {
   const [pokemon, setPokemon] = useState<OwnedPokemon[]>([]);
   const [inventory, setInventory] = useState<Record<string, number> | undefined>();
   const [award, setAward] = useState<RunAward | null>(null);
+  // The ended run, held apart from the envelope on purpose: `GET /run` only
+  // ever returns the *active* run, so the reload that follows an award used to
+  // erase the run the player had just finished before they could read it.
+  const [finished, setFinished] = useState<{ state: RunState; stage: StageDefinition } | null>(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
 
@@ -304,6 +310,9 @@ export function Explore() {
       try {
         const result = await action();
         setEnvelope((current) => (current ? { ...current, run: result.run } : current));
+        if (result.run.state.outcome) {
+          setFinished({ state: result.run.state, stage: result.run.stage });
+        }
         if (result.awarded) {
           setAward(result.awarded);
           await load();
@@ -322,7 +331,9 @@ export function Explore() {
   const pending = state?.pending[0] ?? null;
   const battle = state?.battle ?? null;
 
-  const restart = () => {
+  /** The recap's only exit: bank it, forget it, and go back to the frieze. */
+  const collect = () => {
+    setFinished(null);
     setAward(null);
     load().catch((err) => toast(err instanceof Error ? err.message : String(err), "error"));
   };
@@ -391,22 +402,6 @@ export function Explore() {
               <SpoilsRail state={state} busy={busy} onAbandon={() => act(() => api.runAbandon())} />
             </aside>
           </div>
-        ) : state?.outcome ? (
-          <Frame greenery="both" className="run-outcome">
-            <p className="rail-title">
-              {state.outcome.status === "won" ? "Expédition réussie" : "Expédition terminée"}
-            </p>
-            <p>{state.outcome.message}</p>
-            <LootStrip loot={state.outcome.awarded} label="Butin rapporté" />
-            {award?.hatched.map((hatch, index) => (
-              <p key={index} className="hatch-line">
-                🥚 {hatch.species.name} {hatch.isNew ? "— nouveau compagnon !" : `×${hatch.quantity}`}
-              </p>
-            ))}
-            <button className="btn btn-primary" onClick={restart}>
-              Retour aux expéditions
-            </button>
-          </Frame>
         ) : (
           <Departure
             envelope={envelope}
@@ -416,6 +411,19 @@ export function Explore() {
           />
         )}
       </div>
+
+      {/* The frieze is already behind it, so collecting reveals the next
+          expedition instead of dropping the player on a blank screen. */}
+      {finished && envelope && (
+        <RunRecap
+          state={finished.state}
+          stage={finished.stage}
+          award={award}
+          stages={envelope.stages}
+          busy={busy}
+          onCollect={collect}
+        />
+      )}
     </>
   );
 }

@@ -241,14 +241,39 @@ n'ait à connaître l'autre. Les paliers d'enclos achetés au marché écrivent 
 ce même vocabulaire (section 6) : le moteur ne fait aucune différence entre un
 bonus gagné et un bonus acheté.
 
+### Dire au joueur ce qu'un effet fait
+
+Le moteur n'interprète jamais le `type` d'un effet — mais le joueur, si. C'est
+le rôle de `traits/describe.ts`, le seul endroit qui traduit un effet en
+français, et qui l'étiquette **`farm` ou `combat`** :
+
+```ts
+describeEffect({ type: "slot_rate", target: "MINING", value: 1.7, mode: "mult" })
+// → { scope: "farm", text: "Production de la Mine ×1.7" }
+```
+
+Le panneau de synergies affiche cette phrase sous chaque trait — celle du palier
+actif, ou celle du palier suivant quand rien n'est encore allumé — groupée sous
+🌱 Refuge et ⚔️ Expédition. Une étoile sans phrase à côté n'est qu'une
+décoration : le joueur n'a aucun moyen de savoir si quatre porteurs de Vigueur
+servent sa ferme ou ses combats, et il se trompe.
+
+⚠️ **Les articles sont écrits, pas déduits.** `SLOT_OF` donne « du Champ de
+baies » mais « de la Mine ». Une interpolation naïve produit « Production du
+Mine », ce qui suffit à faire lire le jeu comme une sortie de machine.
+
 ### Inventer un nouveau type d'effet
 
-Trois étapes, aucune dans `traits/` :
+Quatre étapes, aucune dans `traits/engine.ts` :
 
 1. Écris-le dans une synergie ou une relique. Il est déjà accumulé.
 2. Va là où il doit mordre et lis-le : `bag.flat("mon_effet")`,
    `bag.multiplier("mon_effet", cible)` ou `bag.cap("mon_effet")`.
-3. Documente-le dans le tableau ci-dessus.
+3. **Ajoute son `case` dans `describe.ts`**, sinon il s'appliquera sans que rien
+   ne l'annonce. Un test parcourt toutes les synergies livrées et échoue si un
+   effet n'a pas de phrase — c'est ce qui empêche un bonus invisible de partir
+   en production.
+4. Documente-le dans le tableau ci-dessus.
 
 Exemple — « les œufs coûtent moins cher » :
 
@@ -258,6 +283,10 @@ Exemple — « les œufs coûtent moins cher » :
 
 // dans le service du gacha
 const cost = Math.ceil(GACHA_EGG_COST.amount * bag.multiplier("egg_cost"));
+
+// dans describe.ts
+case "egg_cost":
+  return { scope: "farm", text: `Œufs ${mult(value)} moins chers` };
 ```
 
 ---
@@ -614,6 +643,24 @@ Trois choses changent d'un stage au suivant, délibérément pas dix :
 
 Le boss est toujours un légendaire, et toujours seul : un légendaire qui arrive
 accompagné cesse d'être un duel, et le duel est le but.
+
+### Rentrer riche n'est pas terminer
+
+Une expédition peut finir en `won` de deux façons très différentes : avoir battu
+le légendaire, ou être rentré au Refuge avec le butin. Seule la première écrit
+un `StageClear` et ouvre la suivante.
+
+C'est la confusion la plus facile à créer, et l'écran de fin est l'endroit où
+elle se joue. `RunRecap` ne re-déduit pas la règle : il lit le verdict du
+serveur — le tableau des stages rafraîchi dit si ce stage est maintenant
+`cleared` — et titre en conséquence (« Légendaire vaincu » contre « Butin ramené
+au Refuge »), en précisant dans le second cas que la suite reste verrouillée.
+
+Cette pop-up est la seule du jeu qu'on ne peut pas fermer : ni Échap, ni clic
+hors cadre, pas de croix. Le seul bouton est **Récolter**. Une expédition, c'est
+vingt minutes de décisions, et l'écran qui les paye ne doit pas pouvoir être
+sauté — l'ancien écran en ligne, lui, disparaissait tout seul, parce que le
+rechargement qui suit la récolte remet la run active à `null`.
 
 Ajouter un onzième stage, c'est une entrée ici plus un légendaire dans
 `battlers.ts`. Rien d'autre ne sait qu'il y en a dix.

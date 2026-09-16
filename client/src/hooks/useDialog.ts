@@ -6,15 +6,20 @@ import { useEffect } from "react";
  * Escape closes it, the page behind stops scrolling (otherwise a wheel over the
  * backdrop quietly scrolls the board you were reading), and the scrollbar's
  * width is compensated so locking does not shove the whole layout sideways.
+ *
+ * `dismissible: false` keeps the scroll lock but drops the Escape key: it is for
+ * the one dialog that must be read and acknowledged — the end-of-run recap,
+ * whose single exit is the button that banks the loot.
  */
-export function useDialog(onClose: () => void) {
+export function useDialog(onClose: () => void, { dismissible = true }: { dismissible?: boolean } = {}) {
   useEffect(() => {
+    if (!dismissible) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [dismissible, onClose]);
 
   useEffect(() => {
     const { body } = document;

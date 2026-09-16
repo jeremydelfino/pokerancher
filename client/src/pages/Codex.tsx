@@ -224,7 +224,7 @@ export function Codex() {
 
                 {shown.length === 0 ? (
                   <div className="empty">
-                    <CreatureAvatar speciesId="magikarp" size={76} />
+                    <CreatureAvatar speciesId="magikarp" size={96} />
                     <p>Aucune espèce ne correspond à ce filtre.</p>
                   </div>
                 ) : (
@@ -250,7 +250,7 @@ export function Codex() {
                         )}
                         <CreatureAvatar
                           speciesId={entry.species.id}
-                          size={64}
+                          size={96}
                           still
                           shiny={entry.shiny}
                         />

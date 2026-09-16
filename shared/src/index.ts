@@ -10,6 +10,7 @@ export * from "./traits/effects.js";
 export * from "./traits/engine.js";
 export * from "./traits/stars.js";
 export * from "./traits/refuge.js";
+export * from "./traits/describe.js";
 
 // Battles
 export * from "./battle/index.js";

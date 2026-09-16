@@ -3,6 +3,7 @@ import { SYNERGIES } from "../data/synergies.js";
 import { activityStars } from "./stars.js";
 import { EffectBag, buildEffectBag } from "./effects.js";
 import { countTraits, resolveSynergies, resolveSynergy, resolveTraits, teamEffectBag } from "./engine.js";
+import { describeEffect, describeEffects, describeThreshold, scopesOf } from "./describe.js";
 
 describe("resolveTraits", () => {
   it("reads the species config", () => {
@@ -163,5 +164,59 @@ describe("teamEffectBag", () => {
     const pair = teamEffectBag([{ speciesId: "bulbasaur" }, { speciesId: "snivy" }]);
     expect(solo.multiplier("slot_rate", "BERRY_FARM")).toBe(1);
     expect(pair.multiplier("slot_rate", "BERRY_FARM")).toBeGreaterThan(1);
+  });
+});
+
+describe("describeEffects", () => {
+  it("finds a sentence for every effect the game actually ships", () => {
+    // The panel silently drops an effect it cannot read, so this is the test
+    // that stops a new effect kind from shipping invisible to the player.
+    for (const [traitId, synergy] of Object.entries(SYNERGIES)) {
+      for (const tier of synergy.thresholds) {
+        const lines = describeThreshold(tier);
+        expect(
+          lines.length,
+          `${traitId} palier ${tier.count} : un effet n'a pas de phrase`
+        ).toBe(tier.effects.length);
+        for (const line of lines) expect(line.text.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("files a pen bonus under the Refuge and a damage bonus under the expedition", () => {
+    expect(describeEffect({ type: "slot_rate", target: "BERRY_FARM", value: 1.35, mode: "mult" })).toEqual({
+      scope: "farm",
+      text: "Production du Champ de baies ×1.35",
+    });
+    // The feminine pens are the ones a naive `du ${label}` gets wrong.
+    expect(describeEffect({ type: "slot_rate", target: "MINING", value: 1.7, mode: "mult" })!.text).toBe(
+      "Production de la Mine ×1.7"
+    );
+    expect(describeEffect({ type: "activity_score", target: "WOODCUTTING", value: 2 })!.text).toBe(
+      "+2 à l'activité de la Coupe de bois"
+    );
+    expect(describeEffect({ type: "combat_attack", value: 7 })).toEqual({
+      scope: "combat",
+      text: "+7 d'attaque pour toute l'équipe",
+    });
+  });
+
+  it("says «tous» when an effect has no target", () => {
+    expect(describeEffect({ type: "resource_rate", value: 1.1, mode: "mult" })!.text).toContain(
+      "toutes les ressources"
+    );
+  });
+
+  it("keeps a trait's scope stable across its whole ladder", () => {
+    // Vigueur is a fighting trait at every tier; Fertilisation never is.
+    expect(scopesOf(SYNERGIES.vigueur.thresholds)).toEqual(["combat"]);
+    expect(scopesOf(SYNERGIES.fertilisation.thresholds)).toEqual(["farm"]);
+    // Mysdibule's signature does both, and the panel has to show both.
+    expect(scopesOf(SYNERGIES.machoire_double.thresholds)).toEqual(["farm", "combat"]);
+  });
+
+  it("stays silent rather than printing a raw effect it cannot read", () => {
+    expect(describeEffect({ type: "quelque_chose_de_neuf", value: 3 })).toBeNull();
+    expect(describeEffects([{ type: "quelque_chose_de_neuf", value: 3 }])).toEqual([]);
   });
 });

@@ -182,7 +182,9 @@ Tu devrais voir le bouton "Se connecter avec Discord".
   l'équipe de départ d'une expédition (1 à 6 membres)
 - Chaque Pokémon porte des **traits** ; réunir assez de porteurs allume un **palier**
 - Les paliers actifs multiplient la production des enclos et notent leur efficacité en étoiles
-- Le panneau Synergies affiche le prochain seuil et ce qu'il manque pour l'atteindre
+- Le panneau Synergies affiche le prochain seuil, ce qu'il manque pour l'atteindre, et
+  surtout **ce que le palier fait vraiment**, en français et séparé en 🌱 Refuge et
+  ⚔️ Expédition — clique une synergie pour déplier toute son échelle
 
 ### Codex (la collection) — et la fiche d'un Pokémon
 - **84 espèces**, en familles d'évolution complètes ; la rareté suit la famille
@@ -211,6 +213,11 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - Événements, échoppes, reliques temporaires
 - Aux points de décision : **rentrer** avec tout, **sécuriser** une partie, ou **continuer**
 - Mourir fait perdre le butin non sécurisé ; les œufs gagnés éclosent au retour
+- **À la fin, une pop-up récapitule tout** : butin rapporté, œufs éclos, reliques trouvées,
+  qui est rentré debout, et l'expédition que ça vient d'ouvrir. Elle ne se ferme qu'en
+  cliquant **Récolter** — ni Échap, ni clic à côté
+- ⚠️ **Rentrer avec le butin n'est pas terminer l'expédition** : seul le légendaire
+  débloque la suivante, et le récapitulatif le dit clairement
 - **Ton équipe part au niveau de tes Pokémon**, pas à celui du stage : le niveau affiché
   sur une expédition est une recommandation. C'est ce qui relie l'Idle au roguelite —
   les ressources du Refuge achètent les niveaux, et les niveaux ouvrent les stages

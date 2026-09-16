@@ -63,6 +63,25 @@
     inset 0 0 0 2px var(--c-gold);
 }
 
+/* The whole header is the fold/unfold control, so it has to shed every button
+   default and keep laying its children out as the grid rows they were. */
+.synergy-toggle {
+  display: grid;
+  gap: var(--px);
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.synergy-toggle:hover .synergy-name {
+  color: var(--c-gold);
+}
+
 .synergy-head {
   display: flex;
   align-items: center;
@@ -116,6 +135,129 @@
 
 .synergy-max {
   color: var(--c-gold);
+}
+
+/* --- What a synergy actually does -----------------------------------------
+   A star with no sentence next to it is decoration. Every row says, in French,
+   what its live tier grants — and splits it between the pen and the run,
+   because that is the question the player is really asking. */
+
+.synergy-fx {
+  display: grid;
+  gap: var(--s1);
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  box-shadow: inset 0 2px 0 0 rgba(255, 253, 245, 0.12);
+}
+
+.fx-pending {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink-on-dark-soft);
+}
+
+.fx-groups {
+  display: grid;
+  gap: var(--s2);
+}
+
+.fx-group {
+  display: grid;
+  gap: 1px;
+  padding-left: var(--s2);
+  box-shadow: inset 2px 0 0 0 var(--fx-color, var(--c-gold));
+}
+
+.fx-farm {
+  --fx-color: var(--c-grass);
+}
+
+.fx-combat {
+  --fx-color: var(--c-amber);
+}
+
+.fx-scope {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--fx-color);
+}
+
+.fx-line {
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-on-dark);
+}
+
+/* A promise, not a fact: dimmed so it never reads as already applied. */
+.fx-muted .fx-line,
+.fx-muted .fx-scope {
+  color: var(--ink-on-dark-soft);
+}
+
+/* --- The full ladder, unfolded -------------------------------------------- */
+
+.synergy-ladder {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ladder-step {
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s2);
+  background: var(--chrome-sunken);
+  opacity: 0.6;
+}
+
+.ladder-reached {
+  opacity: 1;
+}
+
+.ladder-active {
+  box-shadow: inset 0 0 0 2px var(--c-gold);
+}
+
+.ladder-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.ladder-tier {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-white);
+}
+
+.ladder-flag {
+  padding: 0 var(--s1);
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--ink);
+  background: var(--c-gold);
+}
+
+.ladder-flag-past {
+  color: var(--ink-on-dark);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ink-on-dark-soft);
+}
+
+.ladder-note {
+  font-size: var(--read-sm);
+  line-height: 1.3;
+  color: var(--ink-on-dark-soft);
+}
+
+.synergy-desc {
+  margin: var(--s2) 0 0;
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-on-dark-soft);
 }
 
 .synergy-empty {
@@ -260,25 +402,237 @@
   font-variant-numeric: tabular-nums;
 }
 
-.run-outcome {
-  display: grid;
-  gap: var(--s3);
-  justify-items: start;
-  max-width: 560px;
-  margin: 0 auto;
+/* --- The end-of-run recap -------------------------------------------------
+   Not dismissible by design (see RunRecap), so it has to be worth reading:
+   everything the expedition produced, in the order the player cares about —
+   what they take home first, what hatched second, what it cost last. */
+
+.recap.frame.modal {
+  width: min(880px, calc(100vw - var(--s6)));
 }
 
-.hatch-line {
+.recap-head {
+  display: grid;
+  gap: var(--s1);
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s3);
+  box-shadow: inset 0 -2px 0 0 rgba(26, 20, 40, 0.14);
+}
+
+.recap-verdict {
+  margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text-sm);
-  color: var(--c-magenta);
+  font-size: var(--text-2xl);
+  line-height: 1.1;
+  color: var(--c-wood-deep);
+}
+
+.recap-won .recap-verdict {
+  color: var(--c-grass-dk);
+}
+
+.recap-kept .recap-verdict {
+  color: var(--c-wood-deep);
+}
+
+.recap-lost .recap-verdict {
+  color: var(--c-berry);
+}
+
+.recap-message {
+  margin: 0;
+  font-size: var(--read-lg);
+  color: var(--ink);
+}
+
+.recap-where {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+/* Two columns where there is room: the loot and the eggs are the reward, the
+   relics and the team are the story. */
+.recap-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--s4) var(--s5);
+  align-items: start;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.recap-section {
+  min-width: 0;
+}
+
+.recap-loot {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap-loot-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2);
+  background: var(--surface-sunken);
+}
+
+.recap-loot-amount {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--c-grass-dk);
+  font-variant-numeric: tabular-nums;
+}
+
+.recap-loot-name {
+  font-size: var(--read-base);
+  color: var(--ink-soft);
+}
+
+.recap-nothing,
+.recap-tip {
+  margin: 0;
+  font-size: var(--read-base);
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.recap-tip {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--surface-sunken);
+}
+
+/* --- Hatchlings ----------------------------------------------------------- */
+
+.recap-hatch {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap-hatch-card {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: var(--s2);
+  text-align: center;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* A new species is the best thing an expedition can give you. Say it loudly. */
+.recap-hatch-new {
+  background: var(--c-gold);
+  box-shadow: 0 0 0 2px var(--ink), 0 0 18px rgba(255, 212, 121, 0.6);
+}
+
+.recap-hatch-name {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+}
+
+.recap-hatch-shiny {
+  font-size: var(--read-sm);
+  color: var(--c-wood-deep);
+}
+
+.recap-hatch-meta {
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.recap-hatch-new .recap-hatch-meta {
+  color: var(--c-wood-deep);
+  font-weight: 700;
+}
+
+/* --- Relics and survivors ------------------------------------------------- */
+
+.recap-relics,
+.recap-team {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap-relics li {
+  display: grid;
+  gap: 1px;
+  padding: var(--s2);
+  background: var(--surface-sunken);
+}
+
+.recap-relics strong {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+}
+
+.recap-relics span {
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.recap-team li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  background: var(--surface-sunken);
+}
+
+.recap-team-name {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+}
+
+.recap-team-hp {
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.recap-down {
+  opacity: 0.6;
+}
+
+.recap-down .recap-team-hp {
+  color: var(--c-berry);
+  font-weight: 700;
+}
+
+.recap-unlock {
+  margin: var(--s4) 0 0;
+  padding: var(--s3);
+  font-size: var(--read-base);
+  color: var(--ink);
+  background: var(--c-gold);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.recap .btn-block {
+  margin-top: var(--s4);
 }
 
 /* --- Codex ---------------------------------------------------------------- */
 
 .codex-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
   gap: var(--s4);
 }
 
@@ -353,7 +707,7 @@
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: var(--s2);
 }
 

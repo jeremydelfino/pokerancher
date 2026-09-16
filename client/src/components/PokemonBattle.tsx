@@ -169,7 +169,7 @@ export function PokemonBattle({ battle, busy, onAction }: Props) {
         <div className="side side-foe">
           <Plate battler={{ ...foe, hp: foeHp }} side="foe" />
           <div className={`fighter ${hitSide === "foe" ? "fighter-hit" : ""} ${foeHp <= 0 ? "fighter-ko" : ""}`}>
-            <PokeSprite dex={foe.dex} name={foe.name} size={132} />
+            <PokeSprite dex={foe.dex} name={foe.name} size={188} />
             {event?.kind === "damage" && event.side === "team" && (
               <span key={`f${shown}`} className="damage damage-big">-{event.amount}</span>
             )}
@@ -184,7 +184,7 @@ export function PokemonBattle({ battle, busy, onAction }: Props) {
         {/* Yours, down and to the left, seen from behind. */}
         <div className="side side-team">
           <div className={`fighter ${hitSide === "team" ? "fighter-hit" : ""} ${activeHp <= 0 ? "fighter-ko" : ""}`}>
-            <PokeSprite dex={active.dex} name={active.name} size={156} back />
+            <PokeSprite dex={active.dex} name={active.name} size={224} back />
             {event?.kind === "damage" && event.side === "foe" && (
               <span key={`t${shown}`} className="damage">-{event.amount}</span>
             )}

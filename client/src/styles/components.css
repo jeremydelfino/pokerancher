@@ -757,6 +757,13 @@
   animation: fade-in var(--dur) var(--ease-out);
 }
 
+/* A dialog you must acknowledge: the backdrop is opaque to clicks and darker,
+   so nothing behind it looks reachable. */
+.modal-backdrop-locked {
+  background: rgba(18, 14, 28, 0.88);
+  cursor: default;
+}
+
 
 .modal-head {
   display: flex;

@@ -108,6 +108,8 @@
   position: relative;
   display: inline-grid;
   place-items: center;
+  width: min(var(--pkspr-size, 120px), 100%);
+  aspect-ratio: 1;
 }
 
 .pkspr-img {

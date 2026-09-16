@@ -28,8 +28,15 @@ export function PokeSprite({
   const [broken, setBroken] = useState(false);
   const showSprite = url !== null && !broken;
 
+  // `size` is a *preferred* size, not a fixed one: the arena sprites are big
+  // enough that a hard width would push the field off a narrow screen. The CSS
+  // caps them at the column and keeps them square.
   return (
-    <span className={`pkspr ${shiny ? "pkspr-shiny" : ""}`} style={{ width: size, height: size }} title={name}>
+    <span
+      className={`pkspr ${shiny ? "pkspr-shiny" : ""}`}
+      style={{ ["--pkspr-size" as string]: `${size}px` }}
+      title={name}
+    >
       {showSprite ? (
         <img
           className={`pkspr-img ${spriteIsAnimated(url) ? "" : "pkspr-bob"}`}
