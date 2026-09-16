@@ -208,6 +208,29 @@ Tu devrais voir le bouton "Se connecter avec Discord".
   - **Basculer en chromatique** si tu en as déjà éclos un de cette espèce
 - Un Pokémon en expédition est gelé : sa fiche s'ouvre, mais rien n'est modifiable
 
+### 🌿 PokeValley (exploration active, infinie)
+
+Le second mode de jeu, et le seul qu'on joue *activement* : un monde généré, sans
+fin, qu'on parcourt à pied.
+
+- **Flèches ou ZQSD** pour marcher. Le monde est infini et déterministe : la même
+  **seed** donne exactement le même monde, à partager avec un ami
+  (`POKE-51D3-0000`)
+- **Quatre biomes** — plaines, forêt, désert, neige — choisis par température et
+  humidité, avec des transitions douces et des rivières qui traversent le monde
+- **Les Pokéballs se ramassent** : plants, coffres, camps, ruines. Un lancer raté
+  en coûte une, donc explorer est ce qui finance les captures
+- **La chance de capture est affichée avec ses raisons** : PV restants, écart de
+  niveau contre ton meilleur Pokémon, rareté, alpha
+- **Alphas** : rares, plus forts, et de plus en plus probables avec la distance
+- **Cycle jour/nuit** qui avance en marchant — certaines espèces ne sortent que la
+  nuit
+- **Camps** : soignent l'équipe et mettent le butin à l'abri. Si l'équipe tombe, ce
+  qui a été sécurisé rentre quand même, ainsi que tous les Pokémon capturés
+- **Carte à brouillard de guerre** : seules les zones traversées apparaissent
+- Les Pokémon capturés rejoignent ta collection normale, et le butin tes réserves
+  du Ranch — il n'y a pas de second inventaire
+
 ### Exploration (roguelite)
 - **10 expéditions** de difficulté croissante, présentées en **frise en haut de l'écran** ;
   battre le légendaire d'un stage débloque le suivant. La frise montre ce qui est fait,
@@ -292,6 +315,7 @@ pokerancher/
 │       ├── game-logic.ts    # Production, gacha, paliers d'étoiles
 │       ├── market.ts        # Ventes et paliers d'enclos (règles)
 │       ├── progression.ts   # Niveaux, attaques apprises, évolutions
+│       ├── valley/          # 🌿 PokeValley : bruit, monde, chunks, capture, run
 │       ├── battle/          # Combat Pokémon 1v1 : types, dégâts, tours
 │       ├── pokemon-data.ts  # Espèces, familles d'évolution, rareté
 │       ├── types.ts         # Interfaces TypeScript
@@ -301,7 +325,7 @@ pokerancher/
 │
 ├── server/                  # Backend Node + Express + Prisma
 │   ├── src/
-│   │   ├── routes/          # API endpoints (auth, refuge, gacha, market, run, pokemon, codex)
+│   │   ├── routes/          # API endpoints (auth, refuge, gacha, market, run, valley, pokemon, codex)
 │   │   ├── services/        # Logique métier
 │   │   └── auth/            # Discord OAuth2 + JWT
 │   └── prisma/
@@ -310,7 +334,7 @@ pokerancher/
 │
 ├── client/                  # Frontend React + Vite
 │   ├── src/
-│   │   ├── pages/           # Landing, Refuge, Explore, Market, Gacha, Codex
+│   │   ├── pages/           # Landing, Refuge, Explore, Valley, Market, Gacha, Codex
 │   │   ├── state/           # AuthContext
 │   │   └── api/             # Appels au serveur
 │   └── vite.config.ts
@@ -404,6 +428,7 @@ marque pixel dessinée en SVG sert de repli — rien ne casse.
 - [x] Plusieurs types d'œufs
 - [x] 84 espèces en familles d'évolution, avec learnsets par niveau
 - [x] Niveaux achetés avec les ressources, attaques au choix, évolutions, chromatiques
+- [x] 🌿 PokeValley : monde infini procédural, seed partageable, 4 biomes, capture
 - [ ] Compositions sauvegardées (builds nommés)
 - [ ] Combats PvE hardcore (patterns de boss)
 - [ ] PvP asynchrone + paris virtuels

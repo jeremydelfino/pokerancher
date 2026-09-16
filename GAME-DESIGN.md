@@ -805,6 +805,106 @@ configurée, tout retombe sur la créature paramétrique et le jeu reste jouable
 
 ---
 
+## 11sexies. 🌿 PokeValley
+
+Le second mode de jeu : un monde infini, généré, qu'on parcourt activement.
+L'expédition (section 11) est un graphe de nœuds ; PokeValley est un monde de
+tuiles. Les deux partagent le RNG, le moteur de combat, les Pokémon, les traits
+et l'inventaire — **rien n'est dupliqué**, et un Pokémon capturé dans la nature
+rejoint la même pile que celui éclos d'un œuf.
+
+### La règle qui porte tout le reste
+
+**Rien n'est jamais généré « par chunk ».** Chaque tuile est une fonction pure
+de `(seed, x, y)` en coordonnées mondiales :
+
+```ts
+sampleWorld(seed, 4012, -733)  // toujours la même réponse, depuis n'importe où
+```
+
+Les chunks (32×32) ne sont qu'une **forme de cache** posée par-dessus. C'est ce
+qui fait qu'une rivière qui atteint le bord du chunk (0,0) continue dans le
+(1,0) sans qu'aucun des deux ne sache que l'autre existe. Générer chaque chunk
+isolément donne des coutures ; générer en coordonnées mondiales rend la
+continuité gratuite.
+
+Corollaire : le monde ne passe jamais sur le réseau. Le client le régénère avec
+les mêmes fonctions que le serveur, et seule une position circule.
+
+### Les biomes sont des données
+
+`data/valley-biomes.ts`. Un biome est choisi par **proximité dans l'espace
+climatique** (température, humidité), pas par un tirage :
+
+```ts
+temperature: 0.92, humidity: 0.14  // → Désert
+```
+
+Les champs de climat étant lisses, le gagnant change à une ligne de niveau et
+non à une frontière de chunk : les transitions sont douces sans code de
+transition. L'`affinity` (l'écart entre le premier et le second biome) sert à
+**éclaircir la végétation dans la bande de transition**, pour qu'une lisière se
+lise comme une lisière et non comme un mur.
+
+Ajouter un cinquième biome, c'est une entrée ici plus ses deux couleurs. Aucun
+générateur ne fait de `switch` sur un identifiant de biome.
+
+⚠️ **`minLevel`/`maxLevel` d'une rencontre ne fixent pas le niveau.** Le niveau
+vient de la distance parcourue ; ces deux champs sont une *grille* : la bande
+dans laquelle l'espèce accepte d'apparaître. Chenipan est `1..13`, Papilusion
+`12..42`, donc marcher plus loin échange discrètement un stade d'évolution
+contre le suivant au lieu de servir un Chenipan niveau 40.
+
+### Le rythme, qui est tout
+
+Un combat toutes les cinq secondes n'est pas un jeu d'exploration. Deux
+verrous : un temps de recharge après chaque combat, et un tirage qui n'est
+généreux que **dans le couvert** (herbe haute, buissons, fleurs). En terrain
+découvert la chance tombe à 1,5 %, ce qui fait de l'herbe haute l'endroit où
+l'on va chercher les Pokémon plutôt qu'un décor.
+
+### La capture
+
+Quatre facteurs, et **l'écran les montre tous les quatre** — pas la formule,
+mais ce qui pousse le nombre. Un joueur qui ne voit que « 38 % » n'a aucun moyen
+de s'améliorer :
+
+| facteur | effet |
+|---|---|
+| PV restants | le gros levier — d'où l'intérêt de combattre avant de lancer |
+| écart de niveau | contre ton **meilleur** Pokémon ; au-dessus, ça pique |
+| rareté | un légendaire résiste, un alpha résiste par-dessus |
+| la ball | un multiplicateur, pour que de meilleures balls s'ajoutent plus tard |
+
+Les Pokéballs sont une **ressource de run** : on les trouve (plants, coffres,
+camps, ruines), on les dépense, et un lancer raté en coûte une. C'est la boucle
+qui donne une raison de fouiller au lieu de foncer.
+
+### Ce qu'on garde en mourant
+
+L'équipe à terre ne ruine pas la sortie : les Pokémon capturés et le butin
+**sécurisé à un camp** rentrent quand même. Seul ce qu'on portait est perdu.
+Assez pour rendre un camp précieux, pas assez pour rendre le retour obligatoire.
+
+### Deux réglages calibrés, pas devinés
+
+* fbm est **en cloche autour de 0.5**, donc une bande autour de la médiane
+  sur-sélectionne : des seuils qui semblaient étroits mettaient un cinquième du
+  monde sous l'eau. Les seuils actuels viennent d'un échantillonnage de la vraie
+  distribution (3 à 8 % d'eau selon la seed).
+* La récolte a **une tuile de portée**. Exiger la tuile exacte donnait une seule
+  récolte en 644 pas — l'économie de Pokéballs ne tenait pas. On voit un plant à
+  une tuile, on doit pouvoir le prendre.
+
+### Performance
+
+Le monde est infini, donc la seule question qui compte est *quoi jeter*. Cache
+LRU borné, régénération identique après éviction (un test le vérifie), et
+1,25 ms par chunk après avoir supprimé un double échantillonnage du climat —
+soit 31 ms pour une fenêtre 5×5, une fois, au démarrage.
+
+---
+
 ## 12. Le contrat anti-triche
 
 À respecter en ajoutant des mécaniques, sinon la protection tombe.
@@ -831,6 +931,13 @@ Donc, concrètement :
   jamais un prix ni un total. `sellQuote()` est rejoué côté serveur contre le
   stock que la base affirme, et le débit est conditionnel (`quantity >= …`)
   pour que deux ventes simultanées ne puissent pas créer de pièces.
+- ✅ PokeValley suit la même règle : le client envoie **une direction**, jamais
+  une position. `POST /valley/walk` accepte une courte rafale de pas — marcher
+  est continu, et un aller-retour HTTP par tuile rendrait le monde poisseux —
+  mais le serveur résout chaque pas de la rafale un par un, tirages de rencontre
+  compris, et s'arrête dès que quelque chose l'interrompt. Il n'existe aucune
+  forme dans laquelle le client peut dire « j'ai marché 400 mètres » ou « je l'ai
+  attrapé ».
 - ✅ la fiche Pokémon aussi : `POST /pokemon/:id/level` envoie **un nombre de
   paliers**, jamais un niveau cible ni un coût. Le serveur reprix chaque palier
   et débite conditionnellement, épinglé sur le niveau qu'il vient de lire — deux
@@ -869,7 +976,7 @@ un moment de collection et pas un moment de comptabilité.
 ## 14. Vérifier que tu n'as rien cassé
 
 ```bash
-npm run test --workspace shared   # 133 tests : roster, progression, traits, combat, run, marché
+npm run test --workspace shared   # 198 tests : roster, progression, traits, combat, run, marché, PokeValley
 npm run typecheck                 # les trois paquets
 npm run build --workspace shared  # à relancer après toute modif de données
 ```

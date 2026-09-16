@@ -15,6 +15,7 @@ import type {
   StageDefinition,
   StarTierInfo,
   SynergyState,
+  ValleyState,
 } from "@pokerancher/shared";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -114,6 +115,28 @@ export const api = {
   runChoose: (optionId: string) =>
     request<RunAction>("/run/choose", { method: "POST", body: JSON.stringify({ optionId }) }),
   runAbandon: () => request<RunAction>("/run/abandon", { method: "POST" }),
+
+  /* --- PokeValley --------------------------------------------------------
+     Every call sends an intent. The world itself never crosses the wire: the
+     client regenerates the same tiles from the seed the state carries. */
+  valleyState: () => request<ValleyEnvelope>("/valley"),
+  valleyStart: (unitIds: string[], seed?: string) =>
+    request<{ id: string; state: ValleyState }>("/valley/start", {
+      method: "POST",
+      body: JSON.stringify({ unitIds, seed }),
+    }),
+  valleyWalk: (path: { x: number; y: number }[]) =>
+    request<ValleyAction>("/valley/walk", { method: "POST", body: JSON.stringify({ path }) }),
+  valleyHarvest: () => request<ValleyAction>("/valley/harvest", { method: "POST" }),
+  valleyBattle: (action: BattleAction) =>
+    request<ValleyAction>("/valley/battle", { method: "POST", body: JSON.stringify(action) }),
+  valleyBall: (ball?: string) =>
+    request<ValleyAction & { caught: boolean; chance: number }>("/valley/ball", {
+      method: "POST",
+      body: JSON.stringify({ ball }),
+    }),
+  valleyFlee: () => request<ValleyAction>("/valley/flee", { method: "POST" }),
+  valleyReturn: () => request<ValleyAction>("/valley/return", { method: "POST" }),
 
   codex: () => request<CodexResponse>("/codex"),
 };
@@ -322,4 +345,53 @@ export interface UpgradeResponse {
   capacity: number;
   market: MarketState;
   refuge: RefugeState;
+}
+
+
+/* --- PokeValley ----------------------------------------------------------- */
+
+export interface ValleyAward {
+  resources: Record<string, number>;
+  caught: {
+    speciesId: string;
+    name: string;
+    level: number;
+    shiny: boolean;
+    alpha: boolean;
+    isNew: boolean;
+  }[];
+}
+
+export interface ValleyAction {
+  id: string;
+  state: ValleyState;
+  /** Present only on the request that ended the run. */
+  awarded: ValleyAward | null;
+  log?: string[];
+  events?: import("@pokerancher/shared").BattleEvent[];
+}
+
+export interface ValleyRecord {
+  bestDistance: number;
+  runs: number;
+  pokemonCaught: number;
+  alphasDefeated: number;
+  discovered: string[];
+}
+
+export interface ValleyRosterEntry {
+  id: string;
+  speciesId: string;
+  species: PokemonSpecies;
+  level: number;
+  shiny: boolean;
+  moves: string[];
+  busy: boolean;
+}
+
+export interface ValleyEnvelope {
+  config: { teamSize: number; chunkSize: number; loadRadius: number; metresPerTile: number };
+  run: ValleyState | null;
+  record: ValleyRecord;
+  roster: ValleyRosterEntry[];
 }

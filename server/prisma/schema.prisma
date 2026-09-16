@@ -8,17 +8,19 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  discordId   String   @unique
-  username    String
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  discordId String   @unique
+  username  String
+  avatarUrl String?
+  createdAt DateTime @default(now())
 
   inventory    InventoryItem[]
   pokemonUnits PokemonUnit[]
   refugeSlots  RefugeSlot[]
   runs         Run[]
   stageClears  StageClear[]
+  valleyRuns   ValleyRun[]
+  valleyRecord ValleyRecord?
 }
 
 /// Frugal duplicate-tracking: one row per (user, resource), quantity incremented in place.
@@ -35,19 +37,19 @@ model InventoryItem {
 
 /// One row per (user, species) — duplicates increment `quantity` instead of new rows.
 model PokemonUnit {
-  id             String   @id @default(uuid())
-  userId         String
-  speciesId      String
-  quantity       Int      @default(1)
-  createdAt      DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String
+  speciesId     String
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
   /// Bought with resources, never earned in battle. Drives its battle stats.
-  level          Int      @default(5)
+  level         Int      @default(5)
   /// The four it carries. Empty means "whatever it learned most recently".
-  moves          String[] @default([])
+  moves         String[] @default([])
   /// Whether it is *shown* as shiny. Cosmetic.
-  shiny          Boolean  @default(false)
+  shiny         Boolean  @default(false)
   /// Whether a shiny of this species was ever hatched. Gates the toggle above.
-  shinyUnlocked  Boolean  @default(false)
+  shinyUnlocked Boolean  @default(false)
 
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   refugeWork RefugeAssignment?
@@ -88,6 +90,39 @@ model RefugeAssignment {
 
 /// One roguelite expedition. The whole thing is a seed plus the path taken, so
 /// a run costs one row and the server can regenerate any node to check a claim.
+/// One PokeValley expedition. Same shape as Run and for the same reason: the
+/// world is a seed, so a run is where you stand and what you carry — never a
+/// dump of an endless map.
+model ValleyRun {
+  id        String    @id @default(uuid())
+  userId    String
+  status    String    @default("active")
+  /// Serialised ValleyState from @pokerancher/shared.
+  state     Json
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+/// The permanent record a run leaves behind: how far, how much, how many.
+/// One row per player — PokeValley's progression is a high-water mark, not a
+/// history.
+model ValleyRecord {
+  userId         String   @id
+  bestDistance   Int      @default(0)
+  runs           Int      @default(0)
+  pokemonCaught  Int      @default(0)
+  alphasDefeated Int      @default(0)
+  /// Species ids met in the wild, whether or not they were caught.
+  discovered     String[] @default([])
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Run {
   id        String    @id @default(uuid())
   userId    String

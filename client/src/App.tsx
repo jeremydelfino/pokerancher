@@ -8,6 +8,7 @@ import { Gacha } from "./pages/Gacha.js";
 import { Landing } from "./pages/Landing.js";
 import { Market } from "./pages/Market.js";
 import { Refuge } from "./pages/Refuge.js";
+import { Valley } from "./pages/Valley.js";
 import { useAuth } from "./state/AuthContext.js";
 
 function BootScreen() {
@@ -55,6 +56,14 @@ export function App() {
           element={
             <RequireAuth>
               <Explore />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/valley"
+          element={
+            <RequireAuth>
+              <Valley />
             </RequireAuth>
           }
         />

@@ -314,14 +314,50 @@ export function flee(state: ValleyState): ValleyState {
 
 /* --- The ground ----------------------------------------------------------- */
 
-/** Every feature on the tile you are standing on that you have not taken. */
+/**
+ * The nearest thing worth picking up, within arm's reach.
+ *
+ * Reach rather than the exact tile, and that is a gameplay decision, not a
+ * convenience: a first pass required standing on the precise tile and a 644-step
+ * walk turned up one harvest, which is nowhere near enough to keep the Pokéball
+ * economy running. You can see a plant a tile away — you should be able to take
+ * it.
+ *
+ * A feature can sit in a neighbouring chunk, so the search covers the chunks the
+ * reach touches rather than just the one underfoot.
+ */
+export const HARVEST_REACH = 1;
+
 export function featureAt(state: ValleyState, at: Vec2 = state.at): Feature | null {
-  const { cx, cy } = chunkOf(at.x, at.y);
-  const found = generateFeatures(state.seed, cx, cy).find(
-    (feature) => feature.at.x === at.x && feature.at.y === at.y
-  );
-  if (!found || state.taken.includes(found.id)) return null;
-  return found;
+  const seen = new Set<string>();
+  let best: Feature | null = null;
+  let bestDistance = Infinity;
+
+  for (let dy = -HARVEST_REACH; dy <= HARVEST_REACH; dy++) {
+    for (let dx = -HARVEST_REACH; dx <= HARVEST_REACH; dx++) {
+      const { cx, cy } = chunkOf(at.x + dx, at.y + dy);
+      const key = `${cx},${cy}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      for (const feature of generateFeatures(state.seed, cx, cy)) {
+        if (state.taken.includes(feature.id)) continue;
+        const ox = Math.abs(feature.at.x - at.x);
+        const oy = Math.abs(feature.at.y - at.y);
+        if (ox > HARVEST_REACH || oy > HARVEST_REACH) continue;
+
+        // Chebyshev, then a stable tie-break so two equidistant features always
+        // resolve the same way on the client and on the server.
+        const distance = Math.max(ox, oy);
+        if (distance < bestDistance || (distance === bestDistance && best && feature.id < best.id)) {
+          best = feature;
+          bestDistance = distance;
+        }
+      }
+    }
+  }
+
+  return best;
 }
 
 export interface HarvestResult {
@@ -341,7 +377,7 @@ export function harvest(state: ValleyState): HarvestResult {
   const feature = featureAt(state);
   if (!feature) return { state, log: [] };
 
-  const rng = makeRng(subSeed(state.seed, 0x10a7, state.at.x, state.at.y));
+  const rng = makeRng(subSeed(state.seed, 0x10a7, feature.at.x, feature.at.y));
   const bag = teamEffectBag(state.team);
   const carried: ValleyLoot = { resources: { ...state.carried.resources }, pokeballs: state.carried.pokeballs };
   const log: string[] = [];
@@ -369,7 +405,7 @@ export function harvest(state: ValleyState): HarvestResult {
       break;
     }
     case "chest": {
-      const { biome } = biomeAt(state.seed, state.at.x, state.at.y);
+      const { biome } = biomeAt(state.seed, feature.at.x, feature.at.y);
       const rolls = 1 + Math.floor(rng() * 2);
       for (let i = 0; i < rolls; i++) {
         const pickRes = biome.resources[Math.floor(rng() * biome.resources.length)];
@@ -402,7 +438,7 @@ export function harvest(state: ValleyState): HarvestResult {
     case "ruins":
     case "shrine": {
       const rolls = feature.kind === "shrine" ? 4 : feature.kind === "ruins" ? 3 : 2;
-      const { biome } = biomeAt(state.seed, state.at.x, state.at.y);
+      const { biome } = biomeAt(state.seed, feature.at.x, feature.at.y);
       for (let i = 0; i < rolls; i++) {
         const pickRes = biome.resources[Math.floor(rng() * biome.resources.length)];
         addResource(pickRes.resource, between(12, 40));

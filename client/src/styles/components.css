@@ -991,7 +991,10 @@
   }
 }
 
-@media (max-width: 760px) {
+/* 900, not 760: adding the PokeValley tab made six, and six tabs plus the
+   wallet stopped fitting on one row well before a phone. The stacked layout
+   below already handles it — it just has to start sooner. */
+@media (max-width: 900px) {
   .slot-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1038,7 +1041,7 @@
   }
 }
 
-@media (min-width: 761px) {
+@media (min-width: 901px) {
   .page-res {
     display: none;
   }

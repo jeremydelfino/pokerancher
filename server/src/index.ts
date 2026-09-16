@@ -8,6 +8,7 @@ import { marketRouter } from "./routes/market.js";
 import { pokemonRouter } from "./routes/pokemon.js";
 import { refugeRouter } from "./routes/refuge.js";
 import { runRouter } from "./routes/run.js";
+import { valleyRouter } from "./routes/valley.js";
 import { env } from "./env.js";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/gacha", gachaRouter);
 app.use("/market", marketRouter);
 app.use("/pokemon", pokemonRouter);
 app.use("/run", runRouter);
+app.use("/valley", valleyRouter);
 app.use("/codex", codexRouter);
 
 app.listen(env.port, () => {
