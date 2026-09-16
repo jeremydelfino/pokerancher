@@ -6,11 +6,11 @@ import {
   TRAIT_DEFINITIONS,
   type Rarity,
 } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import { prisma } from "../db.js";
 
-export const codexRouter = Router();
+export const codexRouter = asyncRouter();
 codexRouter.use(requireAuth);
 
 const RARITIES: Rarity[] = ["common", "rare", "epic", "legendary"];

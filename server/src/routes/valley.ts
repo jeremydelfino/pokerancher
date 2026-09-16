@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import type { BattleAction, Vec2 } from "@pokerancher/shared";
 import { requireAuth } from "../auth/middleware.js";
 import {
@@ -12,7 +12,7 @@ import {
   walk,
 } from "../services/valleyService.js";
 
-export const valleyRouter = Router();
+export const valleyRouter = asyncRouter();
 
 // Every route here reads `req.userId`, which only exists once this has run.
 valleyRouter.use(requireAuth);

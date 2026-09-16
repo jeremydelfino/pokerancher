@@ -1,5 +1,5 @@
 import { POKEMON_BY_ID, starTierForCount, activeMoves } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import { prisma } from "../db.js";
 import {
@@ -11,7 +11,7 @@ import {
 } from "../services/pokemonService.js";
 import { unitsOnExpedition } from "../services/refugeService.js";
 
-export const pokemonRouter = Router();
+export const pokemonRouter = asyncRouter();
 pokemonRouter.use(requireAuth);
 
 function fail(res: import("express").Response, err: unknown) {

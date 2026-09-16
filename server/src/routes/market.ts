@@ -1,10 +1,10 @@
 import { SLOTS, type SlotType } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getMarketState, sellEverything, sellResource } from "../services/marketService.js";
 import { getRefugeState, upgradeSlot } from "../services/refugeService.js";
 
-export const marketRouter = Router();
+export const marketRouter = asyncRouter();
 marketRouter.use(requireAuth);
 
 const VALID_SLOT_TYPES = new Set<string>(SLOTS.map((s) => s.type));

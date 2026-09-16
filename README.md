@@ -287,6 +287,20 @@ Copy-Item .env server/.env
 2. **Reset Secret** et copie le nouveau
 3. Redémarre le serveur avec `npm run dev:server`
 
+### Erreur : `Cannot read properties of undefined (reading 'findFirst')`
+
+→ Le client Prisma est plus vieux que le schéma : il ne connaît pas encore un
+modèle qui vient d'arriver (par exemple `ValleyRun`). Une seule commande règle
+les deux moitiés du problème — elle applique les migrations **et** régénère le
+client :
+
+```powershell
+npm run db:migrate
+```
+
+Depuis, `npm run dev:server`, `npm run build` et `npm run typecheck` régénèrent
+le client automatiquement, donc ça ne devrait plus arriver après un `git pull`.
+
 ### Erreur : `Cannot find package '@pokerancher/shared'` ou `does not provide an export named …`
 → Le package shared n'a pas été recompilé après une modification. Les scripts
 `dev:server`, `dev:client` et `test` le font désormais tout seuls, mais si tu

@@ -1,9 +1,9 @@
 import { DEFAULT_EGG } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import { eggCatalogue, rollEgg } from "../services/gachaService.js";
 
-export const gachaRouter = Router();
+export const gachaRouter = asyncRouter();
 gachaRouter.use(requireAuth);
 
 gachaRouter.get("/", (_req, res) => {

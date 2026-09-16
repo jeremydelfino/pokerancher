@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { STARTER_EGG_SHARDS } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { buildDiscordAuthorizeUrl, discordAvatarUrl, exchangeDiscordCode, fetchDiscordUser } from "../auth/discord.js";
 import { SESSION_COOKIE, signSession } from "../auth/jwt.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -9,7 +9,7 @@ import { env } from "../env.js";
 
 const OAUTH_STATE_COOKIE = "pr_oauth_state";
 
-export const authRouter = Router();
+export const authRouter = asyncRouter();
 
 authRouter.get("/discord/login", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");

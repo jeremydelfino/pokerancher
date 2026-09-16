@@ -1,5 +1,5 @@
 import { RUN_CONFIG, type BattleAction } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import {
   abandonRun,
@@ -13,7 +13,7 @@ import {
   startRun,
 } from "../services/runService.js";
 
-export const runRouter = Router();
+export const runRouter = asyncRouter();
 runRouter.use(requireAuth);
 
 /**

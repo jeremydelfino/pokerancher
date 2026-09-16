@@ -1,6 +1,6 @@
 import type { SlotType } from "@pokerancher/shared";
 import { SLOTS } from "@pokerancher/shared";
-import { Router } from "express";
+import { asyncRouter } from "./asyncRouter.js";
 import { requireAuth } from "../auth/middleware.js";
 import {
   assignPokemonToSlot,
@@ -11,7 +11,7 @@ import {
   releasePokemon,
 } from "../services/refugeService.js";
 
-export const refugeRouter = Router();
+export const refugeRouter = asyncRouter();
 refugeRouter.use(requireAuth);
 
 const VALID_SLOT_TYPES = new Set(SLOTS.map((s) => s.type));
