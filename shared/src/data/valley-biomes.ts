@@ -35,10 +35,10 @@ export const BIOMES: Record<string, BiomeDefinition> = {
     ground: "grass",
     lowGround: "dirt",
     flora: [
-      { terrain: "tall_grass", chance: 0.22 },
-      { terrain: "flower", chance: 0.07 },
-      { terrain: "tree", chance: 0.03 },
-      { terrain: "bush", chance: 0.04 },
+      { terrain: "tall_grass", chance: 0.17 },
+      { terrain: "flower", chance: 0.06 },
+      { terrain: "tree", chance: 0.025 },
+      { terrain: "bush", chance: 0.03 },
     ],
     resources: [
       { resource: "berry", weight: 5 },
@@ -86,10 +86,10 @@ export const BIOMES: Record<string, BiomeDefinition> = {
     ground: "grass",
     lowGround: "dirt",
     flora: [
-      { terrain: "tree", chance: 0.34 },
-      { terrain: "tall_grass", chance: 0.24 },
-      { terrain: "bush", chance: 0.1 },
-      { terrain: "flower", chance: 0.04 },
+      { terrain: "tree", chance: 0.22 },
+      { terrain: "tall_grass", chance: 0.16 },
+      { terrain: "bush", chance: 0.06 },
+      { terrain: "flower", chance: 0.03 },
     ],
     resources: [
       { resource: "wood", weight: 6 },

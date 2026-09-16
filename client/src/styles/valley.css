@@ -211,6 +211,83 @@
   text-align: center;
 }
 
+/* --- Toi ---------------------------------------------------------------------
+   The lead Pokémon of the team, dead centre, in the DOM rather than the canvas
+   so an animated sprite actually animates. */
+
+.walker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: end center;
+  transform: translate(-50%, -62%);
+  pointer-events: none;
+}
+
+.walker-shadow {
+  position: absolute;
+  bottom: 2px;
+  width: 54%;
+  height: 10px;
+  background: rgba(40, 32, 24, 0.3);
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+.walker-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.walker-art img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  /* A hard rim so the sprite never dissolves into a field of grass. */
+  filter: drop-shadow(1px 0 0 rgba(26, 20, 40, 0.55)) drop-shadow(-1px 0 0 rgba(26, 20, 40, 0.55))
+    drop-shadow(0 1px 0 rgba(26, 20, 40, 0.55)) drop-shadow(0 -1px 0 rgba(26, 20, 40, 0.55));
+}
+
+/* Walking bounces; standing still breathes. Two speeds of the same idea. */
+.walker-art {
+  animation: walker-idle 2.6s ease-in-out infinite;
+}
+
+.walker-moving .walker-art {
+  animation: walker-step 0.33s steps(2, end) infinite;
+}
+
+.walker-moving .walker-shadow {
+  animation: walker-shadow 0.33s steps(2, end) infinite;
+}
+
+@keyframes walker-idle {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -2px; }
+}
+
+@keyframes walker-step {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
+@keyframes walker-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.32; }
+  50% { transform: scaleX(0.82); opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .walker-art,
+  .walker-moving .walker-art,
+  .walker-moving .walker-shadow {
+    animation: none;
+  }
+}
+
 /* --- The map ---------------------------------------------------------------
    Parchment, not a satellite view: the unexplored world is paper. */
 
@@ -220,20 +297,62 @@
   left: 50%;
   display: grid;
   gap: var(--s2);
-  justify-items: center;
-  padding: var(--s3);
+  justify-items: stretch;
+  padding: var(--s3) var(--s4) var(--s4);
   background: var(--surface);
   transform: translate(-50%, -50%);
+  animation: valley-pop-centre var(--dur) var(--ease-pop);
   box-shadow:
     0 0 0 var(--px2) var(--ink),
     0 var(--s2) 0 0 rgba(18, 14, 28, 0.45);
 }
 
+.valley-map-inner {
+  display: grid;
+  gap: var(--s2);
+  justify-items: center;
+}
+
 .valley-map {
   display: block;
   image-rendering: pixelated;
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 2px rgba(26, 20, 40, 0.2);
 }
+
+.valley-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1) var(--s3);
+  margin: 0;
+  font-size: var(--read-sm);
+  color: var(--ink-soft);
+}
+
+.valley-map-legend strong {
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+
+.valley-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pin {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+.pin-you { background: #fffdf5; }
+.pin-ranch { background: #c2452f; }
+.pin-camp { background: #f2b03d; }
+.pin-rare { background: #d4a0ff; }
 
 /* --- Capture ---------------------------------------------------------------
    The odds *and* what is moving them: a player who only sees "38 %" has no way
@@ -391,4 +510,10 @@
   .valley-log {
     max-width: 200px;
   }
+}
+
+
+@keyframes valley-pop-centre {
+  from { transform: translate(-50%, -46%); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
 }

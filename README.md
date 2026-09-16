@@ -213,7 +213,10 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 Le second mode de jeu, et le seul qu'on joue *activement* : un monde généré, sans
 fin, qu'on parcourt à pied.
 
-- **Flèches ou ZQSD** pour marcher. Le monde est infini et déterministe : la même
+- **Flèches ou ZQSD** pour marcher — le déplacement est prédit côté client, donc il
+  glisse tuile par tuile au lieu d'attendre le serveur
+- **Ton personnage est le premier Pokémon de ton équipe**, avec son vrai sprite animé
+- Le monde est infini et déterministe : la même
   **seed** donne exactement le même monde, à partager avec un ami
   (`POKE-51D3-0000`)
 - **Quatre biomes** — plaines, forêt, désert, neige — choisis par température et

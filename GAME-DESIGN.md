@@ -896,6 +896,54 @@ Assez pour rendre un camp précieux, pas assez pour rendre le retour obligatoire
   récolte en 644 pas — l'économie de Pokéballs ne tenait pas. On voit un plant à
   une tuile, on doit pouvoir le prendre.
 
+### Comment le monde est peint
+
+Trois règles, et chacune corrige une laideur précise de la première passe.
+
+1. **Le sol appartient au biome, jamais au terrain.** Chaque terrain portait sa
+   propre couleur, donc une tuile `tree` peignait son vert *avant* de poser
+   l'arbre — et chaque prop du monde se retrouvait assis sur un carré d'une
+   nuance différente. Le sol vient maintenant du biome et les props ne portent
+   que leur dessin : c'est toute la différence entre « une prairie avec des
+   arbres » et « une grille ».
+2. **Les tons se choisissent par plaques, pas par tuile.** Un bruit lent pioche
+   dans une rampe de trois ou quatre tons proches. La première version donnait
+   à chaque tuile 28 % de valeur aléatoire propre, ce qui faisait basculer les
+   voisines d'un ton à l'autre et peignait le monde en damier.
+3. **Les bords sont dessinés.** Là où deux familles de sol se rencontrent, la
+   frontière reçoit une lèvre tramée ; l'eau reçoit de l'écume sur chaque tuile
+   qui touche la terre. Sans ça, un rivage est un escalier de carrés.
+
+Les props sont triés de l'arrière vers l'avant et posés sur une ombre : c'est ce
+qui les fait tenir *dans* le monde au lieu d'être collés dessus.
+
+⚠️ **La vignette se mesure sur la hauteur, pas sur la plus grande dimension.**
+Mesurée sur la largeur, les coins d'un canvas 16/9 tombaient au fond du dégradé
+et grisaient le monde entier.
+
+### Le personnage
+
+C'est le **premier Pokémon encore debout de l'équipe**, et c'est un élément DOM
+posé au-dessus du canvas, pas un dessin dedans. Les sources de sprites servent
+des **GIF animés**, et `drawImage` n'en peint que la première image : marcher
+derrière un sprite figé est exactement ce qui rendait le mode mort. Un `<img>`
+s'anime gratuitement, et le CSS récupère le rebond, l'ombre et le miroir.
+
+### La fluidité
+
+Le client **prédit**. Le monde étant une fonction pure de la seed, il peut
+appeler `canWalk` lui-même et lancer le glissement à l'instant où la touche
+descend, puis laisser la réponse du serveur confirmer ou corriger.
+
+Le serveur reste autoritaire — il résout toujours chaque pas et chaque tirage de
+rencontre. La prédiction ne supprime que l'attente. Les pas partent dans une
+file drainée **une requête à la fois et dans l'ordre** : le serveur résout
+chaque pas contre le précédent, donc les chevaucher ferait courser deux
+requêtes sur la même tuile.
+
+La version précédente demandait trois tuiles d'un coup et téléportait la caméra
+à l'arrivée de la réponse.
+
 ### Performance
 
 Le monde est infini, donc la seule question qui compte est *quoi jeter*. Cache

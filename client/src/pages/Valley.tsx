@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  canWalk,
   distanceFromRanch,
   featureAt,
   POKEMON_BY_ID,
   type BattleAction,
   type ValleyState,
+  type Vec2,
 } from "@pokerancher/shared";
 import { api, type ValleyAward, type ValleyEnvelope, type ValleyRosterEntry } from "../api/client.js";
 import { Ambience } from "../components/Ambience.js";
@@ -18,6 +20,7 @@ import { useToast } from "../components/Toast.js";
 import { CapturePanel } from "../components/valley/CapturePanel.js";
 import { ValleyHud } from "../components/valley/ValleyHud.js";
 import { ValleyMap } from "../components/valley/ValleyMap.js";
+import { Walker } from "../components/valley/Walker.js";
 import { WorldCanvas } from "../components/valley/WorldCanvas.js";
 import { useDialog } from "../hooks/useDialog.js";
 
@@ -263,7 +266,7 @@ export function Valley() {
   const toast = useToast();
 
   const held = useRef(new Set<string>());
-  const inFlight = useRef(false);
+  const inFlight = useRef(0);
 
   const load = useCallback(async () => {
     setEnvelope(await api.valleyState());
@@ -303,20 +306,81 @@ export function Valley() {
   );
 
   /**
-   * The walk loop.
+   * Steps waiting to be confirmed by the server.
    *
-   * Held keys are flushed as a short batch a few times a second. One request
-   * per tile would make the world feel like treacle, and the server still
-   * resolves every step in the batch — including every encounter roll.
-   *
-   * ⚠️ This effect must NOT depend on the run state. A first pass did, and
-   * since every batch returns a new state it tore the listeners down and
-   * cleared the held keys on each response — holding a key for three seconds
-   * moved three tiles. The state is read through a ref instead, so the
-   * listeners are installed once and stay installed.
+   * Drained one request at a time and strictly in order — the server resolves
+   * each step against the previous one, so overlapping them would let two
+   * requests race over the same tile. Prediction already hid the latency; this
+   * only has to be correct.
    */
+  const queue = useRef<Vec2[]>([]);
+  const pumping = useRef(false);
+
+  const sendStep = useCallback(
+    async (direction: Vec2) => {
+      queue.current.push(direction);
+      inFlight.current += 1;
+      if (pumping.current) return;
+
+      pumping.current = true;
+      try {
+        while (queue.current.length > 0) {
+          const next = queue.current.shift()!;
+          try {
+            apply(await api.valleyWalk([next]));
+          } catch {
+            // A refused step means the prediction was wrong; drop the rest and
+            // let the reconciliation effect snap us back.
+            queue.current.length = 0;
+            held.current.clear();
+          } finally {
+            inFlight.current = Math.max(0, inFlight.current - 1);
+          }
+        }
+      } finally {
+        pumping.current = false;
+      }
+    },
+    [apply]
+  );
+
+  /**
+   * Walking.
+   *
+   * The first version asked the server for three tiles at a time and jumped the
+   * camera when the answer came back, which is exactly as smooth as it sounds.
+   * This one **predicts**: the world is a pure function of the seed, so the
+   * client can check `canWalk` itself and start sliding the instant a key goes
+   * down, then let the server's answer confirm or correct it.
+   *
+   * The server stays authoritative — it still resolves every step and every
+   * encounter roll. Prediction only removes the wait, and a mismatch snaps
+   * (it cannot happen for terrain, since both sides read the same tiles; it can
+   * for a step refused because a battle opened, which is the point of snapping).
+   */
+  const anim = useRef({ from: { x: 0, y: 0 }, to: { x: 0, y: 0 }, start: 0, active: false });
+  const predicted = useRef<Vec2>({ x: 0, y: 0 });
+  const cameraRef = useRef({ x: 0, y: 0 });
+  const [motion, setMotion] = useState({ facing: 1, moving: false });
+
+  /** One tile takes this long. Slower reads as heavy, faster as skating. */
+  const STEP_MS = 145;
+
+  // Whenever the server speaks, its position wins.
+  useEffect(() => {
+    if (!state) return;
+    if (inFlight.current > 0) return;
+    if (predicted.current.x === state.at.x && predicted.current.y === state.at.y) return;
+    predicted.current = { ...state.at };
+    anim.current.active = false;
+    cameraRef.current = { x: 0, y: 0 };
+  }, [state]);
+
   const walkableRef = useRef(false);
   walkableRef.current = Boolean(state && state.status === "active" && !state.battle && !finished);
+
+  const seedRef = useRef(0);
+  seedRef.current = state?.seed ?? 0;
 
   useEffect(() => {
     const onDown = (event: KeyboardEvent) => {
@@ -336,33 +400,70 @@ export function Valley() {
     window.addEventListener("keyup", onUp);
     window.addEventListener("blur", onBlur);
 
-    const timer = window.setInterval(async () => {
-      if (inFlight.current || !walkableRef.current || held.current.size === 0) return;
+    let raf = 0;
+    let lastMoving = false;
+    let lastFacing = 1;
 
-      // The most recently pressed key wins, so changing direction is instant
-      // rather than waiting for the old one to be released.
-      const keys = [...held.current];
-      const direction = KEYS[keys[keys.length - 1]];
-      if (!direction) return;
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
 
-      inFlight.current = true;
-      try {
-        apply(await api.valleyWalk(Array.from({ length: 3 }, () => direction)));
-      } catch {
-        held.current.clear();
-      } finally {
-        inFlight.current = false;
+      const a = anim.current;
+
+      if (a.active) {
+        const t = Math.min(1, (now - a.start) / STEP_MS);
+        // Ease-out: a step should land, not coast.
+        const eased = 1 - Math.pow(1 - t, 2);
+        cameraRef.current = {
+          x: (a.from.x - a.to.x) * (1 - eased),
+          y: (a.from.y - a.to.y) * (1 - eased),
+        };
+        if (t >= 1) {
+          a.active = false;
+          cameraRef.current = { x: 0, y: 0 };
+        }
       }
-    }, 110);
+
+      const moving = a.active || held.current.size > 0;
+      if (moving !== lastMoving || lastFacing !== (cameraRef.current.x > 0 ? -1 : lastFacing)) {
+        lastMoving = moving;
+      }
+
+      // Start the next step the moment the last one lands.
+      if (!a.active && walkableRef.current && held.current.size > 0) {
+        const keys = [...held.current];
+        const direction = KEYS[keys[keys.length - 1]];
+        if (direction) {
+          const from = predicted.current;
+          const to = { x: from.x + direction.x, y: from.y + direction.y };
+
+          if (direction.x !== 0) lastFacing = direction.x > 0 ? 1 : -1;
+
+          if (canWalk(seedRef.current, to)) {
+            predicted.current = to;
+            anim.current = { from, to, start: now, active: true };
+            void sendStep(direction);
+          }
+        }
+      }
+
+      setMotion((current) =>
+        current.moving === moving && current.facing === lastFacing
+          ? current
+          : { moving, facing: lastFacing }
+      );
+    };
+
+    raf = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
       window.removeEventListener("blur", onBlur);
-      window.clearInterval(timer);
+      cancelAnimationFrame(raf);
       held.current.clear();
     };
-  }, [apply]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const collect = () => {
     setFinished(null);
@@ -377,29 +478,48 @@ export function Valley() {
    * Hardcoding 960×560 left a third of a 16/9 screen empty, and PokeValley is a
    * mode you look at — the viewport is the point.
    */
-  const worldRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 960, height: 560 });
+  const observerRef = useRef<ResizeObserver | null>(null);
 
-  useEffect(() => {
-    const element = worldRef.current;
+  /**
+   * Measure the world box whenever the element itself appears or goes away.
+   *
+   * ⚠️ A callback ref, not `useEffect([Boolean(state)])`. Entering a battle
+   * unmounts this div and leaving one mounts a *new* one, while `Boolean(state)`
+   * stays true throughout — so the effect never re-ran, no observer was ever
+   * attached to the new element, and the canvas came back from a fight at
+   * whatever size it happened to be holding. That was the broken map.
+   */
+  const worldRef = useCallback((element: HTMLDivElement | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
     if (!element) return;
 
     const measure = () => {
       const width = Math.max(320, Math.floor(element.clientWidth));
       // 16/9, capped so the world never pushes the help line off the screen.
-      const height = Math.max(300, Math.min(Math.round(width * 0.5625), window.innerHeight - 260));
-      setViewport({ width, height });
+      const height = Math.max(300, Math.min(Math.round(width * 0.5625), window.innerHeight - 250));
+      setViewport((current) =>
+        current.width === width && current.height === height ? current : { width, height }
+      );
     };
 
+    measureRef.current = measure;
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [Boolean(state)]);
+    observerRef.current = observer;
+  }, []);
+
+  // The height is derived from `window.innerHeight`, which a vertical-only
+  // resize changes without touching the element's width — so the observer alone
+  // would miss it.
+  const measureRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const onResize = () => measureRef.current?.();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // `featureAt` is pure and regenerates the chunk, so asking on every state
   // change costs one lookup and never needs the world to be in React state.
@@ -485,10 +605,15 @@ export function Valley() {
             <div className="valley-world" ref={worldRef}>
               <WorldCanvas
                 state={state}
-                offset={{ x: 0, y: 0 }}
+                offsetRef={cameraRef}
                 width={viewport.width}
                 height={viewport.height}
               />
+
+              {/* Dead centre, over the canvas — an <img> so an animated sprite
+                  actually animates, which drawImage would not do for a GIF. */}
+              <Walker state={state} facing={motion.facing} moving={motion.moving} />
+
               <ValleyHud state={state} />
 
               {log.length > 0 && (
@@ -530,8 +655,13 @@ export function Valley() {
 
               {showMap && (
                 <div className="valley-map-wrap">
+                  <p className="rail-title">
+                    Carte <span>seed {state.code}</span>
+                  </p>
                   <ValleyMap state={state} />
-                  <p className="capture-hint">Seules les zones traversées apparaissent.</p>
+                  <button className="btn btn-soft btn-sm btn-block" onClick={() => setShowMap(false)}>
+                    Fermer
+                  </button>
                 </div>
               )}
             </div>
