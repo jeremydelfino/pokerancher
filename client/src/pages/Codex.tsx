@@ -62,12 +62,46 @@ function Gauge({
  * for it. The trait filter turns that into a tool — "who else could light my
  * Carapace threshold" is one click, not a memory exercise.
  */
+/**
+ * Accent- and case-blind search.
+ *
+ * A French player types "evoli", not "Évoli", and "mysdibule" with no idea
+ * where the accents go. Stripping diacritics with NFD costs one line and is the
+ * difference between the box working and the box being decorative.
+ */
+function normalise(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Name, or Pokédex number — "25" finds the 25th.
+ *
+ * An unowned species is drawn as "???" on purpose: not knowing what is missing
+ * is the collection's tease. So an unowned entry is searchable by its *number*,
+ * which the card already shows, and not by the name the card is hiding —
+ * otherwise typing a name would quietly confirm it exists and where.
+ */
+function matches(entry: CodexEntry, needle: string): boolean {
+  if (!needle) return true;
+
+  // Only match the number when the query *is* a number, or "1" would drag in
+  // every species whose dex contains a 1.
+  if (/^\d+$/.test(needle)) return entry.species.dex === Number(needle);
+
+  return entry.owned && normalise(entry.species.name).includes(needle);
+}
+
 export function Codex() {
   const [codex, setCodex] = useState<CodexResponse | null>(null);
   const [inventory, setInventory] = useState<Record<string, number> | undefined>();
   const [trait, setTrait] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("dex");
   const [ownedOnly, setOwnedOnly] = useState(false);
+  const [query, setQuery] = useState("");
   const [openUnit, setOpenUnit] = useState<string | null>(null);
   const toast = useToast();
 
@@ -83,8 +117,12 @@ export function Codex() {
 
   const shown = useMemo(() => {
     if (!codex) return [] as CodexEntry[];
+    const needle = normalise(query);
     const list = codex.entries.filter(
-      (entry) => (!trait || entry.traits.includes(trait)) && (!ownedOnly || entry.owned)
+      (entry) =>
+        (!trait || entry.traits.includes(trait)) &&
+        (!ownedOnly || entry.owned) &&
+        matches(entry, needle)
     );
 
     const compare: Record<SortKey, (a: CodexEntry, b: CodexEntry) => number> = {
@@ -96,7 +134,7 @@ export function Codex() {
     };
 
     return [...list].sort(compare[sort]);
-  }, [codex, trait, sort, ownedOnly]);
+  }, [codex, trait, sort, ownedOnly, query]);
 
   const traitRows = useMemo(() => {
     if (!codex) return [];
@@ -198,6 +236,34 @@ export function Codex() {
             <div className="stage-main">
               <Frame greenery="corner">
                 <div className="codex-toolbar">
+                  <label className="codex-search">
+                    <span className="codex-search-icon" aria-hidden="true">
+                      🔍
+                    </span>
+                    {/* size={1} is load-bearing: an <input> without it carries a
+                        ~20-character intrinsic width that survives `min-width: 0`
+                        and holds the whole toolbar open, pushing the page
+                        sideways on a phone. Flex grows it back. */}
+                    <input
+                      type="search"
+                      size={1}
+                      value={query}
+                      placeholder="Chercher un Pokémon…"
+                      aria-label="Chercher un Pokémon par nom ou numéro"
+                      onChange={(event) => setQuery(event.target.value)}
+                    />
+                    {query && (
+                      <button
+                        type="button"
+                        className="codex-search-clear"
+                        onClick={() => setQuery("")}
+                        aria-label="Effacer la recherche"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </label>
+
                   <span className="rail-title" style={{ margin: 0 }}>
                     {trait
                       ? `${TRAIT_DEFINITIONS[trait]?.name ?? trait} — ${shown.length} espèce(s)`
@@ -225,7 +291,11 @@ export function Codex() {
                 {shown.length === 0 ? (
                   <div className="empty">
                     <CreatureAvatar speciesId="magikarp" size={96} />
-                    <p>Aucune espèce ne correspond à ce filtre.</p>
+                    <p>
+                      {query
+                        ? `Aucune espèce ne s'appelle « ${query} ».`
+                        : "Aucune espèce ne correspond à ce filtre."}
+                    </p>
                   </div>
                 ) : (
                   <div className="codex-grid stagger">

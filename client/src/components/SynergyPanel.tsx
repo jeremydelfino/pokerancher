@@ -1,13 +1,6 @@
 import { useState } from "react";
-import {
-  describeByScope,
-  SCOPE_ICON,
-  SCOPE_LABEL,
-  SYNERGIES,
-  type EffectScope,
-  type SynergyState,
-  type SynergyThreshold,
-} from "@pokerancher/shared";
+import { SYNERGIES, type SynergyState } from "@pokerancher/shared";
+import { EffectGroups } from "./EffectGroups.js";
 import { Stars } from "./Stars.js";
 
 /**
@@ -23,30 +16,6 @@ import { Stars } from "./Stars.js";
  *    player has no way to know whether four Vigueur holders help their farm or
  *    their fights, and guesses wrong.
  */
-
-const SCOPES: EffectScope[] = ["farm", "combat"];
-
-/** The effects of one tier, grouped under a Refuge / Expédition heading. */
-function EffectGroups({ effects, muted }: { effects: SynergyThreshold["effects"]; muted?: boolean }) {
-  const grouped = describeByScope(effects);
-
-  return (
-    <span className={`fx-groups ${muted ? "fx-muted" : ""}`}>
-      {SCOPES.filter((scope) => grouped[scope].length > 0).map((scope) => (
-        <span key={scope} className={`fx-group fx-${scope}`}>
-          <span className="fx-scope">
-            <span aria-hidden="true">{SCOPE_ICON[scope]}</span> {SCOPE_LABEL[scope]}
-          </span>
-          {grouped[scope].map((text) => (
-            <span key={text} className="fx-line">
-              {text}
-            </span>
-          ))}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 function SynergyRow({ state }: { state: SynergyState }) {
   const [open, setOpen] = useState(false);

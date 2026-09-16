@@ -96,8 +96,10 @@
   --rarity-legendary: #f2b03d;
 
   /* --- Type --- */
-  --font-display: "Pixelify Sans", "Courier New", monospace;
-  --font-body: "VT323", "Courier New", monospace;
+  /* "Pixel Digits" first in both stacks: it only owns the numerals (see
+     fonts.css), so it fixes every number in the app without touching a letter. */
+  --font-display: "Pixel Digits", "Pixelify Sans", "Courier New", monospace;
+  --font-body: "Pixel Digits", "VT323", "Courier New", monospace;
 
   /* Display type (Pixelify Sans) — labels, headings, numbers. */
   --text-xs: 13px;

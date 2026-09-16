@@ -190,12 +190,19 @@ Tu devrais voir le bouton "Se connecter avec Discord".
 - **84 espèces**, en familles d'évolution complètes ; la rareté suit la famille
   (Bulbizarre commun → Herbizarre rare → Florizarre épique)
 - Statistiques de complétion sur le côté, tri par trait, filtre « possédés »
+- **Barre de recherche** : par nom (les accents et la casse sont ignorés — « salameche »
+  trouve Salamèche) ou par numéro de Pokédex. Une espèce jamais obtenue reste cherchable
+  par son numéro seulement : son nom est ce que la collection garde caché
 - **Clique une carte possédée** pour ouvrir sa fiche, où tout se passe :
   - **Monter son niveau** (jusqu'à 100), payé avec la ressource de son métier —
     baies, poissons, bois ou minerai, et en **pièces** pour un Pokémon sans métier.
     `+1` et `+10` affichent le prix réel ; `+10` n'achète que ce que ta bourse permet
-  - **Choisir ses 4 attaques** parmi tout ce qu'il a appris. Le reste de l'échelle
-    reste affiché, verrouillé, avec le niveau requis
+  - **Choisir ses 4 attaques** parmi tout ce qu'il a appris, chacune expliquée en
+    toutes lettres : puissance, réussite, PP, et surtout ce que son effet fait
+    réellement (« Rend à l'utilisateur 50 % des dégâts infligés »). Le reste de
+    l'échelle reste affiché, verrouillé, avec le niveau requis
+  - **Lire ses traits** : chaque trait est déplié avec toute son échelle de paliers et
+    les chiffres de chacun, séparés 🌱 Refuge / ⚔️ Expédition
   - **Le faire évoluer** quand il atteint le niveau — Évoli propose ses trois formes,
     et évoluer vers une espèce déjà possédée fusionne les deux piles
   - **Basculer en chromatique** si tu en as déjà éclos un de cette espèce

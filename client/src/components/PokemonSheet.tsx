@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { MOVES, resolveTraits, SPECIES_BATTLE, TYPE_CHART } from "@pokerancher/shared";
+import {
+  describeMove,
+  MOVES,
+  resolveTraits,
+  SPECIES_BATTLE,
+  SYNERGIES,
+  TRAIT_DEFINITIONS,
+  TYPE_CHART,
+} from "@pokerancher/shared";
+import { EffectGroups } from "./EffectGroups.js";
 import { api, type PokemonSheet as Sheet } from "../api/client.js";
 import { Frame } from "./Frame.js";
 import { PokeSprite } from "./PokeSprite.js";
@@ -39,7 +48,8 @@ function MoveRow({
   onToggle: () => void;
 }) {
   const move = MOVES[moveId];
-  if (!move) return null;
+  const facts = describeMove(moveId);
+  if (!move || !facts) return null;
   const type = TYPE_CHART[move.type];
 
   return (
@@ -48,22 +58,82 @@ function MoveRow({
       style={{ ["--type-color" as string]: type.color }}
       disabled={disabled || !learned}
       onClick={onToggle}
-      title={move.description}
     >
       <span className="learn-check" aria-hidden="true">
         {selected ? "✓" : learned ? "" : "🔒"}
       </span>
       <span className="learn-body">
-        <span className="learn-name">{move.name}</span>
+        <span className="learn-name">
+          {move.name}
+          <span className="learn-cat">{facts.category}</span>
+        </span>
         <span className="learn-meta">
           <span className="learn-type">{type.label}</span>
-          <span>{move.power > 0 ? `${move.power} puis.` : "statut"}</span>
-          <span>{Math.round(move.accuracy * 100)} %</span>
-          <span>{move.pp} PP</span>
+          {facts.chips.map((chip) => (
+            <span key={chip}>{chip}</span>
+          ))}
         </span>
+        {/* What it actually does. Four numbers tell a veteran what a move is;
+            they tell everyone else nothing, and they say nothing at all about
+            the half of the catalogue whose point is its effect. */}
+        {facts.lines.map((line) => (
+          <span key={line} className="learn-note">
+            {line}
+          </span>
+        ))}
       </span>
       <span className="learn-level">{learned ? `N.${level}` : `N.${level} requis`}</span>
     </button>
+  );
+}
+
+/**
+ * One trait this species carries, and every tier it can reach.
+ *
+ * The Codex is where a player decides who to raise, and "Carapace" on a chip
+ * says nothing about whether raising this one helps their farm or their fights.
+ * The numbers are the answer, so they are on the sheet — the same sentences the
+ * Refuge rail shows, from the same describer.
+ */
+function TraitBlock({ traitId }: { traitId: string }) {
+  const definition = TRAIT_DEFINITIONS[traitId];
+  const ladder = SYNERGIES[traitId]?.thresholds ?? [];
+  if (!definition) return null;
+
+  return (
+    <section className="trait-block">
+      <p className="trait-block-head">
+        <span className="trait-block-name">
+          {definition.icon && <span aria-hidden="true">{definition.icon} </span>}
+          {definition.name}
+        </span>
+        {definition.exclusive && <span className="badge badge-sig">signature</span>}
+      </p>
+      <p className="trait-block-desc">{definition.description}</p>
+
+      {ladder.length === 0 ? (
+        <p className="trait-block-desc muted">Aucune synergie ne lit ce trait pour l'instant.</p>
+      ) : (
+        <ol className="trait-tiers">
+          {ladder.map((tier) => (
+            <li key={tier.count} className="trait-tier">
+              <span className="trait-tier-count">
+                {tier.label ?? `${tier.count} porteurs`}
+              </span>
+              <EffectGroups effects={tier.effects} />
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {ladder.length > 1 && (
+        <p className="trait-block-note">
+          Seul le palier le plus haut atteint s'applique — il remplace les précédents,
+          il ne s'y ajoute pas. Les porteurs se comptent par espèce : deux exemplaires
+          du même Pokémon n'en font qu'un.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -189,7 +259,7 @@ export function PokemonSheet({ unitId, onClose, onChanged }: Props) {
             {/* --- Identity ---------------------------------------------------- */}
             <div className="sheet-head">
               <div className="sheet-portrait">
-                <PokeSprite dex={species.dex} name={species.name} size={132} shiny={sheet.shiny} />
+                <PokeSprite dex={species.dex} name={species.name} size={196} shiny={sheet.shiny} />
                 {sheet.shinyUnlocked && (
                   <button
                     className={`shiny-toggle ${sheet.shiny ? "shiny-on" : ""}`}
@@ -302,6 +372,17 @@ export function PokemonSheet({ unitId, onClose, onChanged }: Props) {
                 </div>
               </section>
             )}
+            {/* --- Traits ---------------------------------------------------- */}
+            <section className="sheet-section">
+              <p className="rail-title">
+                Traits et synergies <span>{resolveTraits(sheet.speciesId).length}</span>
+              </p>
+              <div className="trait-blocks">
+                {resolveTraits(sheet.speciesId).map((traitId) => (
+                  <TraitBlock key={traitId} traitId={traitId} />
+                ))}
+              </div>
+            </section>
           </div>
 
           {/* --- Moves ----------------------------------------------------- */}

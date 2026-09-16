@@ -254,7 +254,9 @@ describeEffect({ type: "slot_rate", target: "MINING", value: 1.7, mode: "mult" }
 
 Le panneau de synergies affiche cette phrase sous chaque trait — celle du palier
 actif, ou celle du palier suivant quand rien n'est encore allumé — groupée sous
-🌱 Refuge et ⚔️ Expédition. Une étoile sans phrase à côté n'est qu'une
+🌱 Refuge et ⚔️ Expédition. La fiche du Codex montre la même chose autrement :
+l'échelle complète du trait, palier par palier, avec les chiffres — parce que
+c'est là que le joueur décide qui monter. Une étoile sans phrase à côté n'est qu'une
 décoration : le joueur n'a aucun moyen de savoir si quatre porteurs de Vigueur
 servent sa ferme ou ses combats, et il se trompe.
 
@@ -580,6 +582,16 @@ marcher Vive-Attaque.
 
 Garde peu d'attaques de statut : un combat où toutes les options sont un
 ajustement de stat cesse d'être un combat.
+
+⚠️ **Une nouvelle `MoveEffectKind` a besoin de sa phrase**, dans
+`battle/describe.ts`, sinon la fiche du Codex affichera une attaque dont l'effet
+est invisible. Un test échoue si un effet livré n'en a pas.
+
+`describeMove` encode aussi une règle du moteur qu'il serait facile de
+paraphraser de travers : un `heal` sur une attaque qui frappe rend un
+pourcentage **des dégâts infligés**, alors que le même `heal` sur une attaque de
+statut rend un pourcentage **des PV maximum**. La fiche dit laquelle des deux
+s'applique — sinon le joueur choisit Vampigraine en croyant prendre Synthèse.
 
 ### Qui se bat
 

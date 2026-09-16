@@ -1132,6 +1132,72 @@
   min-width: 140px;
 }
 
+/* --- Search ---------------------------------------------------------------
+   First in the toolbar and wide enough to type a full name into: with 84
+   species the grid is long enough that scrolling to one is the slow path. */
+
+.codex-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 0 1 280px;
+  /* An <input> carries an intrinsic width, and a flex item will not shrink past
+     its content unless told to — without this the box holds the toolbar open
+     and pushes the whole page sideways on a phone. */
+  min-width: 0;
+  padding: var(--s1) var(--s2);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.codex-search-icon {
+  font-size: var(--read-base);
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.codex-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: var(--read-base);
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.codex-search input::placeholder {
+  color: var(--ink-faint);
+}
+
+.codex-search:focus-within {
+  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 2px var(--c-gold);
+}
+
+/* Chromium draws its own clear cross on type=search; ours matches the theme. */
+.codex-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.codex-search-clear {
+  flex: none;
+  padding: 0 var(--s1);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.codex-search-clear:hover {
+  color: var(--ink);
+}
+
 .codex-sort {
   display: inline-flex;
   align-items: center;
@@ -2204,6 +2270,99 @@
   margin-bottom: 0;
 }
 
+/* --- Traits on the sheet --------------------------------------------------
+   The Codex is where a player decides who to raise, so "Carapace" has to come
+   with its numbers rather than being a word on a chip. */
+
+.trait-blocks {
+  display: grid;
+  gap: var(--s3);
+  /* A legendary carries four traits of three tiers each. Bounded here so the
+     worst case scrolls inside its own section instead of stretching the whole
+     dialog past the screen. */
+  max-height: min(42vh, 380px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.trait-block {
+  padding: var(--s3);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px rgba(26, 20, 40, 0.12);
+}
+
+.trait-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin: 0 0 2px;
+}
+
+.trait-block-name {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.badge-sig {
+  background: var(--c-gold);
+}
+
+.trait-block-desc {
+  margin: 0 0 var(--s2);
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.trait-tiers {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trait-tier {
+  display: grid;
+  gap: 2px;
+  padding: var(--s2);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px rgba(26, 20, 40, 0.14);
+}
+
+.trait-tier-count {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--c-wood-deep);
+}
+
+.trait-block-note {
+  margin: var(--s2) 0 0;
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-faint);
+}
+
+/* On a light sheet the effect lines inherit the dark-rail colours, which are
+   near-invisible on cream. Flip them back inside a trait block. */
+.trait-block .fx-line {
+  color: var(--ink);
+}
+
+.trait-block .fx-scope {
+  color: var(--c-wood-deep);
+}
+
+.trait-block .fx-farm {
+  --fx-color: var(--c-grass-dk);
+}
+
+.trait-block .fx-combat {
+  --fx-color: var(--c-berry);
+}
+
 .level-bar {
   display: flex;
   flex-wrap: wrap;
@@ -2268,7 +2427,9 @@
 .learn-row {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto;
-  align-items: center;
+  /* Rows are multi-line now that they explain the move, so the check and the
+     level pin to the top instead of floating in the middle of a paragraph. */
+  align-items: start;
   gap: var(--s2);
   padding: var(--s1) var(--s2);
   text-align: left;
@@ -2309,8 +2470,37 @@
 }
 
 .learn-name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
   font-family: var(--font-display);
   font-size: var(--text-sm);
+}
+
+.learn-cat {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.learn-row-on .learn-cat {
+  color: var(--c-wood-deep);
+}
+
+/* What the move does, in a sentence. The line that makes the difference between
+   picking Vampigraine and picking Synthèse. */
+.learn-note {
+  font-size: var(--read-sm);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.learn-row-on .learn-note {
+  color: var(--c-wood-deep);
+}
+
+.learn-check,
+.learn-level {
+  padding-top: 2px;
 }
 
 .learn-meta {

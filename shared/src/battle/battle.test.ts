@@ -4,6 +4,7 @@ import { effectiveness } from "../data/types-chart.js";
 import { availableSwitches, chooseFoeMove, damageOf, resolveBattleTurn } from "./engine.js";
 import { activeMoves, knownMoves } from "../progression.js";
 import { makeBattler } from "./stats.js";
+import { describeMove, describeMoveEffect } from "./describe.js";
 import type { BattleState, Battler } from "./types.js";
 
 function battle(teamIds: string[], foeIds: string[], level = 20, foeLevel = level): BattleState {
@@ -223,3 +224,43 @@ function makeSeededRng(seed: number): () => number {
     return state / 4294967296;
   };
 }
+
+describe("describeMove", () => {
+  it("has words for every move in the catalogue", () => {
+    for (const id of Object.keys(MOVES)) {
+      const facts = describeMove(id)!;
+      expect(facts, id).toBeTruthy();
+      expect(facts.chips.length, id).toBe(3);
+      expect(facts.lines[0].length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it("explains every effect a move can carry", () => {
+    // A move whose whole point is its effect must not render as a blank line.
+    for (const move of Object.values(MOVES)) {
+      if (!move.effect) continue;
+      expect(describeMoveEffect(move), move.id).not.toBeNull();
+    }
+  });
+
+  it("says a drain move heals from the damage, and a rest from max PV", () => {
+    // This is the engine's rule, and the sheet has to state the right one or a
+    // player picks Vampigraine expecting Synthèse.
+    expect(describeMoveEffect(MOVES.giga_sangsue)).toContain("des dégâts infligés");
+    expect(describeMoveEffect(MOVES.synthese)).toContain("PV maximum");
+  });
+
+  it("states the size of a stat change, not its multiplier", () => {
+    // mimi_queue is ×0.75 defence: the player cares that it is -25 %.
+    expect(describeMoveEffect(MOVES.mimi_queue)).toContain("25 %");
+  });
+
+  it("flags a priority move", () => {
+    expect(describeMove("vive_attaque")!.lines.join(" ")).toContain("avant l'adversaire");
+    expect(describeMove("charge")!.lines.join(" ")).not.toContain("avant l'adversaire");
+  });
+
+  it("returns nothing for a move that does not exist", () => {
+    expect(describeMove("nawak")).toBeNull();
+  });
+});
