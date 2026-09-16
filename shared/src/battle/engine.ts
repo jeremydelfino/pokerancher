@@ -1,7 +1,7 @@
 import { BATTLE_CONFIG } from "../data/battle-config.js";
 import { MOVES, STRUGGLE_MOVE, type MoveDefinition } from "../data/moves.js";
 import { effectiveness, effectivenessLabel } from "../data/types-chart.js";
-import { makeRng, subSeed } from "../run/rng.js";
+import { makeRng, subSeed } from "../rng.js";
 import { effectiveAttack, effectiveDefense } from "./stats.js";
 import type { BattleAction, BattleEvent, BattleState, Battler } from "./types.js";
 

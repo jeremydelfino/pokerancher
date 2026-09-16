@@ -17,7 +17,7 @@ export * from "./battle/index.js";
 
 // Runs
 export * from "./run/types.js";
-export * from "./run/rng.js";
+export * from "./rng.js";
 export * from "./run/map.js";
 export * from "./run/engine.js";
 
@@ -39,3 +39,14 @@ export * from "./data/relics.js";
 export * from "./data/rewards.js";
 export * from "./data/events.js";
 export * from "./data/market.js";
+
+// PokeValley — the active, endless exploration mode.
+export * from "./valley/types.js";
+export * from "./valley/noise.js";
+export * from "./valley/world.js";
+export * from "./valley/chunk.js";
+export * from "./valley/encounters.js";
+export * from "./valley/capture.js";
+export * from "./valley/engine.js";
+export * from "./data/valley-config.js";
+export * from "./data/valley-biomes.js";

@@ -1,5 +1,5 @@
 import { RUN_CONFIG } from "../data/run-config.js";
-import { makeRng, pickWeighted, subSeed } from "./rng.js";
+import { makeRng, pickWeighted, subSeed } from "../rng.js";
 import type { RunMap, RunNode, RunNodeType } from "./types.js";
 
 /**

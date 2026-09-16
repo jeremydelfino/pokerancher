@@ -12,7 +12,7 @@ import type { SynergyState } from "../traits/types.js";
 import { starTierForCount } from "../game-logic.js";
 import type { ResourceType } from "../types.js";
 import { generateRunMap, reachableFrom } from "./map.js";
-import { makeRng, pick, pickWeighted, shuffle, subSeed } from "./rng.js";
+import { makeRng, pick, pickWeighted, shuffle, subSeed } from "../rng.js";
 import type {
   LootBag,
   PendingChoice,
